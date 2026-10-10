@@ -143,15 +143,23 @@ namespace VehicleSystem
             throttle = Mathf.Clamp(throttle, -1f, 1f);
             steer = Mathf.Clamp(steer, -1f, 1f);
 
+            if (recovery != null)
+            {
+                recovery.DriveInput = throttle; // the player's own intent, used by "stuck" detection
+                if (reset) recovery.Recover();
+
+                // while backing out of a stuck spot the recovery script drives the car
+                if (recovery.TryGetOverride(out float overrideThrottle, out float overrideSteer))
+                {
+                    throttle = overrideThrottle;
+                    steer = overrideSteer;
+                    hand = false;
+                }
+            }
+
             vehicle.SetInput(throttle, steer, hand);
 
             if (cameraRig != null) cameraRig.SetLookBack(lookBack);
-
-            if (recovery != null)
-            {
-                recovery.DriveInput = throttle; // lets "stuck" detection know the player is trying to drive
-                if (reset) recovery.Recover();
-            }
         }
     }
 }
