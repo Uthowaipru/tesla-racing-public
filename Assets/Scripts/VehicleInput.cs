@@ -10,10 +10,11 @@ namespace VehicleSystem
     /// Everything ends up in a single vehicle.SetInput(throttle, steer, handbrake) call, so the
     /// vehicle never knows which device is driving. AI / replays / network can still call SetInput() themselves.
     ///
-    ///   Keyboard : W/S or Up/Down = throttle/brake/reverse, A/D or Left/Right = steer, Space = handbrake, C = look back
+    ///   Keyboard : W/S or Up/Down = throttle/brake/reverse, A/D or Left/Right = steer, Space = handbrake,
+    ///              C = look back, R = reset (put the car back on its wheels)
     ///   Gamepad  : Right/Left trigger = throttle/brake, Left stick or D-pad = steer, South button / Right shoulder = handbrake,
-    ///              Right stick press = look back
-    ///   Mobile   : see MobileControls (on-screen buttons, auto-accelerate, optional tilt steering)
+    ///              Right stick press = look back, North button (Y / Triangle) = reset
+    ///   Mobile   : see MobileControls (on-screen buttons, auto-accelerate, optional tilt steering, RESET button)
     ///
     /// Actions are created in code, so you do not need to edit the InputSystem_Actions asset.
     /// Requires Project Settings > Player > Active Input Handling = "Input System Package" or "Both".
@@ -25,16 +26,19 @@ namespace VehicleSystem
         public MobileControls mobile;
         [Tooltip("Optional. Found automatically if empty. Used for the look-back button.")]
         public VehicleCameraRig cameraRig;
+        [Tooltip("Optional. Found on this vehicle automatically. Enables the reset button / key.")]
+        public VehicleRecovery recovery;
 
         VehicleController vehicle;
 
 #if ENABLE_INPUT_SYSTEM
-        InputAction throttleAction, steerAction, handbrakeAction, lookBackAction;
+        InputAction throttleAction, steerAction, handbrakeAction, lookBackAction, resetAction;
 #endif
 
         void Awake()
         {
             vehicle = GetComponent<VehicleController>();
+            if (recovery == null) recovery = GetComponent<VehicleRecovery>();
 
 #if ENABLE_INPUT_SYSTEM
             // ---- throttle / brake / reverse (-1..1)
@@ -65,6 +69,10 @@ namespace VehicleSystem
             lookBackAction = new InputAction("LookBack", InputActionType.Button);
             lookBackAction.AddBinding("<Keyboard>/c");
             lookBackAction.AddBinding("<Gamepad>/rightStickPress");
+
+            resetAction = new InputAction("ResetVehicle", InputActionType.Button);
+            resetAction.AddBinding("<Keyboard>/r");
+            resetAction.AddBinding("<Gamepad>/buttonNorth");
 #endif
         }
 
@@ -81,6 +89,7 @@ namespace VehicleSystem
             steerAction.Enable();
             handbrakeAction.Enable();
             lookBackAction.Enable();
+            resetAction.Enable();
         }
 
         void OnDisable()
@@ -89,6 +98,7 @@ namespace VehicleSystem
             steerAction.Disable();
             handbrakeAction.Disable();
             lookBackAction.Disable();
+            resetAction.Disable();
         }
 
         void OnDestroy()
@@ -97,24 +107,27 @@ namespace VehicleSystem
             steerAction?.Dispose();
             handbrakeAction?.Dispose();
             lookBackAction?.Dispose();
+            resetAction?.Dispose();
         }
 #endif
 
         void Update()
         {
             float throttle, steer;
-            bool hand, lookBack;
+            bool hand, lookBack, reset;
 
 #if ENABLE_INPUT_SYSTEM
             throttle = throttleAction.ReadValue<float>();
             steer = steerAction.ReadValue<float>();
             hand = handbrakeAction.IsPressed();
             lookBack = lookBackAction.IsPressed();
+            reset = resetAction.WasPressedThisFrame();
 #else
             throttle = Input.GetAxisRaw("Vertical");
             steer = Input.GetAxisRaw("Horizontal");
             hand = Input.GetKey(KeyCode.Space);
             lookBack = Input.GetKey(KeyCode.C);
+            reset = Input.GetKeyDown(KeyCode.R);
 #endif
 
             // ---- merge mobile touch / tilt on top
@@ -124,11 +137,21 @@ namespace VehicleSystem
                 steer += mobile.Steer;
                 hand |= mobile.Handbrake;
                 lookBack |= mobile.LookBack;
+                reset |= mobile.ConsumeReset();
             }
 
-            vehicle.SetInput(Mathf.Clamp(throttle, -1f, 1f), Mathf.Clamp(steer, -1f, 1f), hand);
+            throttle = Mathf.Clamp(throttle, -1f, 1f);
+            steer = Mathf.Clamp(steer, -1f, 1f);
+
+            vehicle.SetInput(throttle, steer, hand);
 
             if (cameraRig != null) cameraRig.SetLookBack(lookBack);
+
+            if (recovery != null)
+            {
+                recovery.DriveInput = throttle; // lets "stuck" detection know the player is trying to drive
+                if (reset) recovery.Recover();
+            }
         }
     }
 }

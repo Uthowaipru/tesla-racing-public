@@ -8,7 +8,7 @@ namespace VehicleSystem.EditorTools
 {
     /// <summary>
     /// Generates the mobile touch UI as real objects in the Hierarchy so you can edit it.
-    /// Menu: Tools > Vehicle > Generate Mobile Controls UI   (or the button on the MobileControls component)
+    /// Menu: Tools > Vehicle > Generate Mobile Controls UI   (or the buttons on the MobileControls component)
     /// IMPORTANT: this file must live in a folder named "Editor" (e.g. Assets/Scripts/Editor).
     /// </summary>
     public static class MobileControlsBuilder
@@ -19,6 +19,7 @@ namespace VehicleSystem.EditorTools
         [MenuItem("GameObject/Vehicle/Mobile Controls UI", false, 20)]
         static void CreateFromHierarchyMenu() => Build(null);
 
+        /// <summary>Builds the whole UI from scratch (asks first if one already exists).</summary>
         public static void Build(MobileControls target)
         {
             var mc = target != null ? target : Object.FindFirstObjectByType<MobileControls>();
@@ -63,27 +64,47 @@ namespace VehicleSystem.EditorTools
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            // ---- buttons (same default layout as the runtime fallback)
-            Transform p = canvasGo.transform;
+            mc.uiRoot = canvasGo;
+            CreateMissingButtons(mc);
+
+            Finish(mc, canvasGo);
+        }
+
+        /// <summary>Creates only the buttons that are missing. Existing (edited) buttons are left alone.</summary>
+        public static void AddMissingButtons(MobileControls mc)
+        {
+            if (mc.uiRoot == null) { Build(mc); return; }
+
+            Undo.RecordObject(mc, "Add Missing Mobile Buttons");
+            CreateMissingButtons(mc);
+            Finish(mc, mc.uiRoot);
+        }
+
+        static void CreateMissingButtons(MobileControls mc)
+        {
+            Transform p = mc.uiRoot.transform;
             Vector2 bl = new Vector2(0f, 0f);
             Vector2 br = new Vector2(1f, 0f);
             Vector2 tr = new Vector2(1f, 1f);
             bool auto = mc.autoAccelerate;
 
-            mc.left     = MakeButton(p, "<",     bl, new Vector2(190f, 190f), 240f, mc, !mc.useTilt);
-            mc.right    = MakeButton(p, ">",     bl, new Vector2(470f, 190f), 240f, mc, !mc.useTilt);
-            mc.gas      = MakeButton(p, "GAS",   br, new Vector2(-200f, 230f), 300f, mc, !auto);
-            mc.brake    = MakeButton(p, "BRAKE", br, new Vector2(auto ? -200f : -500f, 190f), auto ? 280f : 220f, mc, true);
-            mc.drift    = MakeButton(p, "DRIFT", br, new Vector2(-200f, auto ? 470f : 520f), 190f, mc, true);
-            mc.lookBack = MakeButton(p, "BACK",  tr, new Vector2(-110f, -110f), 130f, mc, true);
-            mc.uiRoot = canvasGo;
+            if (mc.left == null) mc.left = MakeButton(p, "<", bl, new Vector2(190f, 190f), 240f, mc, !mc.useTilt);
+            if (mc.right == null) mc.right = MakeButton(p, ">", bl, new Vector2(470f, 190f), 240f, mc, !mc.useTilt);
+            if (mc.gas == null) mc.gas = MakeButton(p, "GAS", br, new Vector2(-200f, 230f), 300f, mc, !auto);
+            if (mc.brake == null) mc.brake = MakeButton(p, "BRAKE", br, new Vector2(auto ? -200f : -500f, 190f), auto ? 280f : 220f, mc, true);
+            if (mc.drift == null) mc.drift = MakeButton(p, "DRIFT", br, new Vector2(-200f, auto ? 470f : 520f), 190f, mc, true);
+            if (mc.lookBack == null) mc.lookBack = MakeButton(p, "BACK", tr, new Vector2(-110f, -110f), 130f, mc, true);
+            if (mc.reset == null) mc.reset = MakeButton(p, "RESET", tr, new Vector2(-270f, -110f), 130f, mc, true);
+        }
 
+        static void Finish(MobileControls mc, GameObject select)
+        {
             EditorUtility.SetDirty(mc);
             if (mc.gameObject.scene.IsValid())
                 EditorSceneManager.MarkSceneDirty(mc.gameObject.scene);
 
-            Selection.activeGameObject = canvasGo;
-            EditorGUIUtility.PingObject(canvasGo);
+            Selection.activeGameObject = select;
+            EditorGUIUtility.PingObject(select);
         }
 
         static TouchHoldButton MakeButton(Transform parent, string label, Vector2 anchor, Vector2 pos,
@@ -164,6 +185,8 @@ namespace VehicleSystem.EditorTools
                     Selection.activeGameObject = mc.uiRoot;
                     EditorGUIUtility.PingObject(mc.uiRoot);
                 }
+                if (GUILayout.Button("Add Missing Buttons (keeps your edits)"))
+                    MobileControlsBuilder.AddMissingButtons(mc);
                 if (GUILayout.Button("Rebuild Default UI (replaces your edits)"))
                     MobileControlsBuilder.Build(mc);
             }

@@ -48,6 +48,8 @@ namespace VehicleSystem
         public TouchHoldButton brake;
         public TouchHoldButton drift;
         public TouchHoldButton lookBack;
+        [Tooltip("Puts the car back on its wheels at the same spot.")]
+        public TouchHoldButton reset;
 
         [Header("Default colours (editor tool + runtime fallback)")]
         public Color idleColor = new Color(1f, 1f, 1f, 0.28f);
@@ -60,6 +62,15 @@ namespace VehicleSystem
         public bool Handbrake { get; private set; }
         public bool LookBack { get; private set; }
 
+        /// <summary>True once per tap of the RESET button. Reading it clears it.</summary>
+        public bool ConsumeReset()
+        {
+            bool value = resetRequested;
+            resetRequested = false;
+            return value;
+        }
+
+        bool resetRequested, resetWasHeld;
         float tiltZero, tiltSmoothed;
         bool tiltCalibrated;
 
@@ -153,6 +164,7 @@ namespace VehicleSystem
             drift = MakeButton(p, "DRIFT", br,
                 new Vector2(-200f, autoAccelerate ? 470f : 520f), 190f);
             lookBack = MakeButton(p, "BACK", tr, new Vector2(-110f, -110f), 130f);
+            reset = MakeButton(p, "RESET", tr, new Vector2(-270f, -110f), 130f);
         }
 
         TouchHoldButton MakeButton(Transform parent, string label, Vector2 anchor, Vector2 pos, float size)
@@ -206,6 +218,11 @@ namespace VehicleSystem
 
             Handbrake = drift != null && drift.Held;
             LookBack = lookBack != null && lookBack.Held;
+
+            // RESET fires once when the button goes down
+            bool resetHeld = reset != null && reset.Held;
+            if (resetHeld && !resetWasHeld) resetRequested = true;
+            resetWasHeld = resetHeld;
         }
 
         // ------------------------------------------------------------------ tilt
