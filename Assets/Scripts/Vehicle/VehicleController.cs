@@ -29,6 +29,7 @@ namespace VehicleSystem
     /// <summary>
     /// Universal wheeled-vehicle controller (2 / 3 / 4+ wheels).
     /// Everything tunable comes from VehicleStats, so upgrades never touch this script.
+    /// It only receives a DriveInput (see VehicleDriver) and does not know who is driving.
     ///
     /// Three-wheeler setup:  front wheel  -> steer + brake
     ///                       rear L and R -> drive + brake + handbrake (same axleIndex)
@@ -78,6 +79,24 @@ namespace VehicleSystem
         [Tooltip("0 = off. Needed for 2-wheelers (keeps the bike upright). Try 15-30 for bikes.")]
         public float uprightAssist = 0f;
         public float uprightDamping = 3f;
+
+        // --- Registry of active vehicles (so other scripts never have to search the scene) ---
+        static readonly List<VehicleController> active = new List<VehicleController>();
+
+        /// <summary>Every enabled vehicle in the scene (players, bots and remote cars).</summary>
+        public static IReadOnlyList<VehicleController> All => active;
+
+        /// <summary>Raised when a vehicle is enabled / disabled (e.g. when a spawner creates or removes one).</summary>
+        public static event Action<VehicleController> VehicleEnabled;
+        public static event Action<VehicleController> VehicleDisabled;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            active.Clear();
+            VehicleEnabled = null;
+            VehicleDisabled = null;
+        }
 
         // --- Runtime info (HUD, audio, etc.) ---
         public float ForwardSpeed { get; private set; }          // m/s, + forward
@@ -130,11 +149,17 @@ namespace VehicleSystem
             if (stats == null) stats = GetComponent<VehicleStats>();
             stats.OnStatsChanged += ApplyStats;
             ApplyStats();
+
+            if (!active.Contains(this)) active.Add(this);
+            VehicleEnabled?.Invoke(this);
         }
 
         void OnDisable()
         {
             if (stats != null) stats.OnStatsChanged -= ApplyStats;
+
+            active.Remove(this);
+            VehicleDisabled?.Invoke(this);
         }
 
         /// <summary>Call again if you add/remove/swap wheels at runtime.</summary>
@@ -160,7 +185,7 @@ namespace VehicleSystem
                 if (w.brake) brakeCount++;
 
                 if (w.steer) { steerZ += w.localPos.z; steerN++; }
-                else         { fixedZ += w.localPos.z; fixedN++; }
+                else { fixedZ += w.localPos.z; fixedN++; }
 
                 if (!byAxle.TryGetValue(w.axleIndex, out var list))
                     byAxle[w.axleIndex] = list = new List<WheelSetup>();
@@ -228,6 +253,9 @@ namespace VehicleSystem
             steerInput = Mathf.Clamp(steer, -1f, 1f);
             handbrakeInput = handbrake;
         }
+
+        /// <summary>Same as above, taking a DriveInput (what VehicleDriver sends every frame).</summary>
+        public void SetInput(DriveInput input) => SetInput(input.throttle, input.steer, input.handbrake);
 
         // ------------------------------------------------------------------ simulation
 

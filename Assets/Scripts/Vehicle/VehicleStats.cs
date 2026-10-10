@@ -35,13 +35,15 @@ namespace VehicleSystem
         public readonly ModifierType Type;
         public readonly float Value;
         public readonly object Source; // e.g. the equipment item that created it
+        public readonly string Id;     // optional stable id (StatModifierDef.id) so it can be saved / sent over the network
 
-        public StatModifier(VehicleStat stat, ModifierType type, float value, object source = null)
+        public StatModifier(VehicleStat stat, ModifierType type, float value, object source = null, string id = null)
         {
             Stat = stat;
             Type = type;
             Value = value;
             Source = source;
+            Id = id;
         }
     }
 
@@ -96,11 +98,47 @@ namespace VehicleSystem
             }
         }
 
+        /// <summary>
+        /// Copies the base values of a VehicleDefinition (the car's data asset) onto this car.
+        /// Existing modifiers are kept. Call it right after spawning.
+        /// </summary>
+        public void ApplyDefinition(VehicleDefinition def)
+        {
+            if (def == null) return;
+            motorTorque = def.motorTorque;
+            maxSpeedKmh = def.maxSpeedKmh;
+            brakeTorque = def.brakeTorque;
+            steerAngle = def.steerAngle;
+            tireGrip = def.tireGrip;
+            suspensionSpring = def.suspensionSpring;
+            suspensionDamper = def.suspensionDamper;
+            suspensionTravel = def.suspensionTravel;
+            antiRoll = def.antiRoll;
+            Refresh();
+        }
+
         public void AddModifier(StatModifier mod)
         {
             if (mod == null) return;
             modifiers.Add(mod);
             Refresh();
+        }
+
+        /// <summary>Adds a modifier asset. Use the same "source" with RemoveAllFromSource() to take it off again.</summary>
+        public StatModifier AddModifier(StatModifierDef def, object source = null)
+        {
+            if (def == null) return null;
+            var mod = def.CreateModifier(source);
+            AddModifier(mod);
+            return mod;
+        }
+
+        /// <summary>Ids of the active modifiers that have one (what you save or send over the network).</summary>
+        public void GetModifierIds(List<string> into)
+        {
+            if (into == null) return;
+            for (int i = 0; i < modifiers.Count; i++)
+                if (!string.IsNullOrEmpty(modifiers[i].Id)) into.Add(modifiers[i].Id);
         }
 
         public bool RemoveModifier(StatModifier mod)

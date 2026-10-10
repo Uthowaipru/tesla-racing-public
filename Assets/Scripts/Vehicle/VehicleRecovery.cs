@@ -5,15 +5,16 @@ using UnityEngine;
 namespace VehicleSystem
 {
     /// <summary>
-    /// Gets the vehicle out of trouble. Works two ways:
-    ///   1. Manual : call Recover() (VehicleInput does this for the R key, gamepad Y/North, and the mobile RESET button).
-    ///               Puts the car upright, in place if the spot is free, otherwise at the nearest free spot.
-    ///   2. Auto   : - flipped / on its side for a while  -> put upright (same as manual).
+    /// Gets the vehicle out of trouble. Two SEPARATE paths:
+    ///   1. Manual : RecoverManual() (LocalPlayerRig calls it for the R key, gamepad Y/North, and the mobile RESET button).
+    ///               Puts the car upright, lifts it by "Lift Height" and moves it "Manual Back Distance" backwards
+    ///               (stopping short of anything behind it). No searching, instant and predictable.
+    ///   2. Auto   : - flipped / on its side for a while  -> RecoverAuto(): upright at the nearest clear spot.
     ///               - stuck while the player is driving  -> "Reverse Out": the script drives the car backwards
     ///                 (or forwards if it was reversing) for a moment while steering away from the obstacle,
-    ///                 like arcade racing games. If that fails a couple of times it falls back to the clear-spot reset.
+    ///                 like arcade racing games. If that fails a couple of times it falls back to RecoverAuto().
     ///
-    /// Setup: add to the vehicle (next to VehicleController). VehicleInput hands control over during Reverse Out.
+    /// Setup: add to the vehicle (next to VehicleController). VehicleDriver hands control over during Reverse Out.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(VehicleController))]
@@ -21,13 +22,25 @@ namespace VehicleSystem
     {
         public enum StuckRecoverMode { ReverseOut, NearbyClearSpot, LastSafePoint }
 
-        [Header("Reset (button / key)")]
-        [Tooltip("Lift used when no ground can be found at all (meters).")]
+        [Header("Manual Reset (button / key)")]
+        [Tooltip("The reset button / key lifts the car this high (meters).")]
         public float liftHeight = 1.2f;
+        [Tooltip("The reset button / key also moves the car this far BACKWARD (meters). It stops short of walls behind the car. 0 = lift only.")]
+        public float manualBackDistance = 3f;
         [Tooltip("Minimum time between two resets (seconds).")]
         public float cooldown = 1.5f;
 
-        [Header("Find Clear Spot (used by reset)")]
+        [Header("Manual Reset Limit")]
+        [Tooltip("Players may only use the manual reset a limited number of times per match. Auto recovery is never limited or counted.")]
+        public bool limitManualResets = true;
+        [Tooltip("Manual resets allowed per match.")]
+        public int maxManualResets = 3;
+
+        [Header("Auto Recovery")]
+        [Tooltip("Lift used by automatic recovery when no clear spot is found nearby (meters).")]
+        public float autoFallbackLift = 1.2f;
+
+        [Header("Find Clear Spot (used by auto recovery only)")]
         [Tooltip("If the car would overlap something where it is, move it to the nearest free spot.")]
         public bool findClearSpot = true;
         [Tooltip("Layers that count as obstacles (ground, walls, other vehicles). Default: everything.")]
@@ -80,11 +93,12 @@ namespace VehicleSystem
         public int safePointCount = 4;
 
         [Header("Camera")]
+        [Tooltip("Assigned by LocalPlayerRig.Attach() for the local player's car. Leave empty for bots / remote cars.")]
         public VehicleCameraRig cameraRig;
         [Tooltip("Snap the camera behind the car after a teleport, so it does not swing across the map.")]
         public bool snapCameraOnRecover = true;
 
-        // ---- set by VehicleInput (or an AI) every frame: the PLAYER's throttle -1..1
+        // ---- set by VehicleDriver every frame: the driver's own throttle -1..1 (player, bot or network)
         public float DriveInput { get; set; }
 
         /// <summary>0..1 progress of an automatic recovery (for a HUD "Resetting..." bar).</summary>
@@ -95,10 +109,22 @@ namespace VehicleSystem
 
         public event Action Recovered;
 
+        /// <summary>Manual resets still available this match.</summary>
+        public int ManualResetsLeft { get; private set; }
+
+        /// <summary>False when the limit is on and all manual resets are used up.</summary>
+        public bool CanManualReset => !limitManualResets || ManualResetsLeft > 0;
+
+        /// <summary>Fired when the player presses reset but has none left (for a sound / UI shake).</summary>
+        public event Action ManualResetDenied;
+
+        /// <summary>Give the manual resets back. Call this when a new match starts.</summary>
+        public void ResetManualUses() => ManualResetsLeft = Mathf.Max(0, maxManualResets);
+
         Rigidbody rb;
         VehicleController vehicle;
 
-        float flippedTimer, stuckTimer, cooldownTimer, safeTimer;
+        float flippedTimer, stuckTimer, cooldownTimer, safeTimer, lastDriveSign;
         readonly Queue<Pose> safePoses = new Queue<Pose>();
 
         // reverse-out state
@@ -131,18 +157,14 @@ namespace VehicleSystem
         {
             rb = GetComponent<Rigidbody>();
             vehicle = GetComponent<VehicleController>();
+            ResetManualUses();
             RecalculateSize();
-        }
-
-        void Start()
-        {
-            if (cameraRig == null) cameraRig = FindFirstObjectByType<VehicleCameraRig>();
         }
 
         // ------------------------------------------------------------------ public API
 
         /// <summary>
-        /// While this returns true, use these values instead of the player's input (VehicleInput does this).
+        /// While this returns true, use these values instead of the driver's input (VehicleDriver does this).
         /// </summary>
         public bool TryGetOverride(out float throttle, out float steer)
         {
@@ -151,8 +173,50 @@ namespace VehicleSystem
             return reversing;
         }
 
-        /// <summary>Put the car upright. Stays in place if that spot is free, otherwise moves to the nearest free spot.</summary>
-        public void Recover()
+        /// <summary>
+        /// MANUAL reset (R key / RESET button): upright, lifted by Lift Height and moved backward.
+        /// Uses up one of the limited resets. Returns false (and does nothing) when none are left.
+        /// </summary>
+        public bool RecoverManual()
+        {
+            if (limitManualResets)
+            {
+                if (ManualResetsLeft <= 0)
+                {
+                    ManualResetDenied?.Invoke();
+                    return false;
+                }
+                ManualResetsLeft--;
+            }
+
+            Quaternion rot = FlatRotation();
+            Vector3 back = rot * Vector3.back;
+
+            // how far back is free? (box the size of the car, swept backwards; the car's own colliders are ignored)
+            float free = Mathf.Max(0f, manualBackDistance);
+            if (free > 0f)
+            {
+                Vector3 center = transform.position + rot * testCenterLocal;
+                int n = Physics.BoxCastNonAlloc(center, testHalfExtents, back, rayHits, rot, free,
+                    obstacleLayers, QueryTriggerInteraction.Ignore);
+
+                for (int i = 0; i < n; i++)
+                {
+                    if (rayHits[i].collider.transform.IsChildOf(transform)) continue;
+                    if (rayHits[i].distance < free) free = rayHits[i].distance;
+                }
+                free = Mathf.Max(0f, free - 0.1f);
+            }
+
+            Teleport(transform.position + back * free + Vector3.up * liftHeight, rot);
+            return true;
+        }
+
+        /// <summary>Kept so older code still compiles. Same as RecoverManual().</summary>
+        public void Recover() => RecoverManual();
+
+        /// <summary>AUTO recovery: upright at the nearest clear spot (falls back to a small lift in place).</summary>
+        public void RecoverAuto()
         {
             Quaternion rot = FlatRotation();
 
@@ -162,13 +226,13 @@ namespace VehicleSystem
                 return;
             }
 
-            Teleport(transform.position + Vector3.up * liftHeight, rot);
+            Teleport(transform.position + Vector3.up * autoFallbackLift, rot);
         }
 
-        /// <summary>Put the car back where it was driving a few seconds ago (falls back to Recover()).</summary>
+        /// <summary>Put the car back where it was driving a few seconds ago (falls back to RecoverAuto()).</summary>
         public void RecoverToSafePoint()
         {
-            if (safePoses.Count == 0) { Recover(); return; }
+            if (safePoses.Count == 0) { RecoverAuto(); return; }
 
             Pose p = safePoses.Peek();
             safePoses.Clear();
@@ -248,6 +312,11 @@ namespace VehicleSystem
 
             // upright but not moving while the player is trying to drive
             bool trying = Mathf.Abs(DriveInput) > 0.5f;
+
+            // Player switched between forward and reverse (e.g. auto-accelerate -> holding BRAKE to back up):
+            // start counting again, so time spent pushing forward never triggers a reverse-out against the new direction.
+            float driveSign = trying ? Mathf.Sign(DriveInput) : 0f;
+            if (driveSign != lastDriveSign) { stuckTimer = 0f; lastDriveSign = driveSign; }
             if (recoverWhenStuck && upDot >= flippedThreshold && trying && speed < stuckSpeed) stuckTimer += dt;
             else stuckTimer = 0f;
 
@@ -259,7 +328,7 @@ namespace VehicleSystem
 
             if (recoverWhenFlipped && flippedTimer >= flippedTime)
             {
-                Recover();
+                RecoverAuto();
             }
             else if (recoverWhenStuck && stuckTimer >= stuckDelay)
             {
@@ -267,7 +336,7 @@ namespace VehicleSystem
                 {
                     case StuckRecoverMode.ReverseOut: StartReverseOut(); break;
                     case StuckRecoverMode.LastSafePoint: RecoverToSafePoint(); break;
-                    default: Recover(); break;
+                    default: RecoverAuto(); break;
                 }
             }
         }
@@ -283,7 +352,7 @@ namespace VehicleSystem
             if (attempts > Mathf.Max(1, maxReverseAttempts))
             {
                 attempts = 0;
-                Recover();
+                RecoverAuto();
                 return;
             }
 

@@ -86,6 +86,7 @@ namespace VehicleSystem.EditorTools
             Vector2 bl = new Vector2(0f, 0f);
             Vector2 br = new Vector2(1f, 0f);
             Vector2 tr = new Vector2(1f, 1f);
+            Vector2 tl = new Vector2(0f, 1f);
             bool auto = mc.autoAccelerate;
 
             if (mc.left == null) mc.left = MakeButton(p, "<", bl, new Vector2(190f, 190f), 240f, mc, !mc.useTilt);
@@ -95,6 +96,7 @@ namespace VehicleSystem.EditorTools
             if (mc.drift == null) mc.drift = MakeButton(p, "DRIFT", br, new Vector2(-200f, auto ? 470f : 520f), 190f, mc, true);
             if (mc.lookBack == null) mc.lookBack = MakeButton(p, "BACK", tr, new Vector2(-110f, -110f), 130f, mc, true);
             if (mc.reset == null) mc.reset = MakeButton(p, "RESET", tr, new Vector2(-270f, -110f), 130f, mc, true);
+            if (mc.pause == null) mc.pause = MakeButton(p, "PAUSE", tl, new Vector2(110f, -110f), 130f, mc, true);
         }
 
         static void Finish(MobileControls mc, GameObject select)

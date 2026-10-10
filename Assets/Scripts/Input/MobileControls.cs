@@ -9,7 +9,7 @@ using UnityEngine.InputSystem.UI;
 namespace VehicleSystem
 {
     /// <summary>
-    /// On-screen touch controls for the vehicle. Exposes Throttle / Steer / Handbrake / LookBack for VehicleInput.
+    /// On-screen touch controls for the vehicle. Exposes Throttle / Steer / Handbrake / LookBack for LocalPlayerInput.
     ///
     /// UI source:
     ///   - If "Ui Root" is assigned (made with the editor tool: Tools > Vehicle > Generate Mobile Controls UI,
@@ -17,15 +17,13 @@ namespace VehicleSystem
     ///     recolour or replace them freely.
     ///   - If it is empty, a default UI is built at runtime.
     ///
-    /// The UI only shows on mobile devices, or in the editor when "Force Show In Editor" is on.
+    /// The UI only shows while InputModeManager is in Touch mode (the default). It hides when the player
+    /// uses a keyboard / mouse / gamepad and comes back on the next touch.
     /// </summary>
     public class MobileControls : MonoBehaviour
     {
-        [Header("Visibility")]
-        public bool forceShowInEditor = false;
-
         [Header("Driving")]
-        [Tooltip("Car always accelerates. The brake button brakes, then reverses. Hides the Gas button.")]
+        [Tooltip("Car always accelerates. The brake control brakes, then reverses. Hides the Gas button. Applies to keyboard and gamepad too (LocalPlayerInput).")]
         public bool autoAccelerate = true;
 
         [Header("Tilt Steering")]
@@ -50,12 +48,14 @@ namespace VehicleSystem
         public TouchHoldButton lookBack;
         [Tooltip("Puts the car back on its wheels at the same spot.")]
         public TouchHoldButton reset;
+        [Tooltip("Opens the pause menu (PauseMenu reads it).")]
+        public TouchHoldButton pause;
 
         [Header("Default colours (editor tool + runtime fallback)")]
         public Color idleColor = new Color(1f, 1f, 1f, 0.28f);
         public Color heldColor = new Color(1f, 1f, 1f, 0.6f);
 
-        // ---- values read by VehicleInput
+        // ---- values read by LocalPlayerInput
         public bool Active { get; private set; }
         public float Throttle { get; private set; }
         public float Steer { get; private set; }
@@ -70,7 +70,28 @@ namespace VehicleSystem
             return value;
         }
 
-        bool resetRequested, resetWasHeld;
+        /// <summary>True once per tap of the PAUSE button. Reading it clears it.</summary>
+        public bool ConsumePause()
+        {
+            bool value = pauseRequested;
+            pauseRequested = false;
+            return value;
+        }
+
+        /// <summary>
+        /// Switch auto-accelerate while playing (the pause menu's option). Refused when there is no GAS button
+        /// to drive with, so the car can never be left without a way to accelerate.
+        /// </summary>
+        public void SetAutoAccelerate(bool value)
+        {
+            if (!value && gas == null) return;
+            autoAccelerate = value;
+            if (runtimeUi) PositionRuntimeButtons();
+            ApplyOptionVisibility();
+        }
+
+        bool resetRequested, resetWasHeld, pauseRequested, pauseWasHeld, runtimeUi;
+        InputModeManager modeManager;
         float tiltZero, tiltSmoothed;
         bool tiltCalibrated;
 
@@ -78,11 +99,6 @@ namespace VehicleSystem
 
         void Awake()
         {
-            Active = Application.isMobilePlatform || (Application.isEditor && forceShowInEditor);
-
-            if (uiRoot != null) uiRoot.SetActive(Active);
-            if (!Active) return;
-
             if (Application.isMobilePlatform)
             {
                 Screen.orientation = ScreenOrientation.LandscapeLeft;
@@ -96,14 +112,23 @@ namespace VehicleSystem
 
             if (uiRoot == null) BuildUI();
             else ApplyOptionVisibility();
+
+            modeManager = InputModeManager.Instance;
+            SetVisible(modeManager.Mode == InputMode.Touch);
         }
 
         void Start()
         {
 #if ENABLE_INPUT_SYSTEM
-            if (Active && useTilt && Accelerometer.current != null)
+            if (useTilt && Accelerometer.current != null)
                 InputSystem.EnableDevice(Accelerometer.current);
 #endif
+        }
+
+        void SetVisible(bool visible)
+        {
+            Active = visible;
+            if (uiRoot != null) uiRoot.SetActive(visible);
         }
 
         /// <summary>Hides the buttons that the current options make unnecessary.</summary>
@@ -156,8 +181,7 @@ namespace VehicleSystem
                 right = MakeButton(p, ">", bl, new Vector2(470f, 190f), 240f);
             }
 
-            if (!autoAccelerate)
-                gas = MakeButton(p, "GAS", br, new Vector2(-200f, 230f), 300f);
+            gas = MakeButton(p, "GAS", br, new Vector2(-200f, 230f), 300f); // hidden while auto-accelerate is on
 
             brake = MakeButton(p, "BRAKE", br,
                 new Vector2(autoAccelerate ? -200f : -500f, 190f), autoAccelerate ? 280f : 220f);
@@ -165,6 +189,27 @@ namespace VehicleSystem
                 new Vector2(-200f, autoAccelerate ? 470f : 520f), 190f);
             lookBack = MakeButton(p, "BACK", tr, new Vector2(-110f, -110f), 130f);
             reset = MakeButton(p, "RESET", tr, new Vector2(-270f, -110f), 130f);
+            pause = MakeButton(p, "PAUSE", new Vector2(0f, 1f), new Vector2(110f, -110f), 130f);
+
+            runtimeUi = true;
+            PositionRuntimeButtons();
+            ApplyOptionVisibility();
+        }
+
+        /// <summary>Runtime-built UI only: BRAKE / DRIFT move depending on whether the GAS button is shown.</summary>
+        void PositionRuntimeButtons()
+        {
+            bool auto = autoAccelerate;
+            Place(brake, new Vector2(auto ? -200f : -500f, 190f), auto ? 280f : 220f);
+            Place(drift, new Vector2(-200f, auto ? 470f : 520f), 190f);
+        }
+
+        static void Place(TouchHoldButton b, Vector2 pos, float size)
+        {
+            if (b == null) return;
+            var rt = (RectTransform)b.transform;
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = new Vector2(size, size);
         }
 
         TouchHoldButton MakeButton(Transform parent, string label, Vector2 anchor, Vector2 pos, float size)
@@ -205,7 +250,21 @@ namespace VehicleSystem
 
         void Update()
         {
-            if (!Active) return;
+            // show the buttons only in Touch mode
+            bool touchMode = modeManager == null || modeManager.Mode == InputMode.Touch;
+            if (touchMode != Active)
+            {
+                SetVisible(touchMode);
+                if (touchMode) tiltCalibrated = false; // re-zero the tilt when touch takes over again
+            }
+
+            if (!Active)
+            {
+                Throttle = Steer = 0f;
+                Handbrake = LookBack = false;
+                resetWasHeld = pauseWasHeld = false;
+                return;
+            }
 
             // ---- steering
             if (useTilt) Steer = ReadTilt(Time.unscaledDeltaTime);
@@ -223,6 +282,11 @@ namespace VehicleSystem
             bool resetHeld = reset != null && reset.Held;
             if (resetHeld && !resetWasHeld) resetRequested = true;
             resetWasHeld = resetHeld;
+
+            // PAUSE fires once when the button goes down
+            bool pauseHeld = pause != null && pause.Held;
+            if (pauseHeld && !pauseWasHeld) pauseRequested = true;
+            pauseWasHeld = pauseHeld;
         }
 
         // ------------------------------------------------------------------ tilt

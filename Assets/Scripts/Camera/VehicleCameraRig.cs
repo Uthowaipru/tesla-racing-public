@@ -18,7 +18,8 @@ namespace VehicleSystem
     ///   - Collision Filter: layers that push the camera in (walls, buildings). Leave your bumps OUT of it.
     ///   - Ground Filter:    layers the ground lift looks at (ground + bumps). Smooth, never snaps.
     ///
-    /// Setup: empty GameObject at the scene root -> add this script -> assign the vehicle.
+    /// Setup: empty GameObject at the scene root -> add this script. LocalPlayerRig assigns the vehicle
+    /// (Attach), or assign it yourself in the inspector.
     /// The virtual camera and the CinemachineBrain (on your MainCamera) are created for you.
     /// </summary>
     [DefaultExecutionOrder(-50)] // run before the CinemachineBrain so the camera never lags a frame
@@ -189,18 +190,32 @@ namespace VehicleSystem
             SetupCinemachine();
         }
 
-        void OnEnable() => ApplyCursor();
+        void OnEnable()
+        {
+            ApplyCursor();
+            VehicleController.VehicleEnabled += OnVehicleEnabled;
+        }
+
+        void OnDisable() => VehicleController.VehicleEnabled -= OnVehicleEnabled;
+
         void OnApplicationFocus(bool hasFocus) { if (hasFocus) ApplyCursor(); }
+
+        // Cars that spawn later (other racers) must not block this camera either.
+        void OnVehicleEnabled(VehicleController other)
+        {
+            if (vehicle != null) TagVehicleColliders(other);
+        }
 
         void ApplyCursor()
         {
-            if (lockCursor && !Application.isMobilePlatform) Cursor.lockState = CursorLockMode.Locked;
+            if (lockCursor && !Application.isMobilePlatform && !PauseMenu.IsPaused) Cursor.lockState = CursorLockMode.Locked;
         }
 
         void Start()
         {
-            if (vehicle == null) vehicle = FindFirstObjectByType<VehicleController>();
-            SetTarget(vehicle);
+            // The target is assigned by LocalPlayerRig.Attach() (or in the inspector). No scene search here,
+            // so with several cars the camera can never grab the wrong one.
+            if (vehicle != null) SetTarget(vehicle);
         }
 
         void SetupCinemachine()
@@ -261,26 +276,33 @@ namespace VehicleSystem
         {
             resolvedIgnoreTag = vehicle.CompareTag("Untagged") ? ignoreTag : vehicle.tag;
 
-            if (autoTagVehicleColliders && !string.IsNullOrEmpty(resolvedIgnoreTag))
-            {
-                try
-                {
-                    foreach (var c in vehicle.GetComponentsInChildren<Collider>(true))
-                        if (c.CompareTag("Untagged")) c.gameObject.tag = resolvedIgnoreTag;
-                }
-                catch (UnityException)
-                {
-                    Debug.LogWarning($"VehicleCameraRig: tag '{resolvedIgnoreTag}' doesn't exist. " +
-                                     "Create it in Project Settings > Tags and Layers, or put the vehicle on its own tag.");
-                    resolvedIgnoreTag = "";
-                }
-            }
+            // our own car plus every other racer, so no car in the pack can push the camera in
+            TagVehicleColliders(vehicle);
+            var others = VehicleController.All;
+            for (int i = 0; i < others.Count; i++) TagVehicleColliders(others[i]);
 
             if (follow != null)
             {
                 var obstacles = follow.AvoidObstacles;
                 obstacles.IgnoreTag = resolvedIgnoreTag ?? "";
                 follow.AvoidObstacles = obstacles;
+            }
+        }
+
+        void TagVehicleColliders(VehicleController car)
+        {
+            if (car == null || !autoTagVehicleColliders || string.IsNullOrEmpty(resolvedIgnoreTag)) return;
+
+            try
+            {
+                foreach (var c in car.GetComponentsInChildren<Collider>(true))
+                    if (c.CompareTag("Untagged")) c.gameObject.tag = resolvedIgnoreTag;
+            }
+            catch (UnityException)
+            {
+                Debug.LogWarning($"VehicleCameraRig: tag '{resolvedIgnoreTag}' doesn't exist. " +
+                                 "Create it in Project Settings > Tags and Layers, or put the vehicle on its own tag.");
+                resolvedIgnoreTag = "";
             }
         }
 
