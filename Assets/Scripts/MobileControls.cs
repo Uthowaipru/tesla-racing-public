@@ -9,16 +9,15 @@ using UnityEngine.InputSystem.UI;
 namespace VehicleSystem
 {
     /// <summary>
-    /// On-screen touch controls for the vehicle. Builds its own Canvas + buttons at runtime
-    /// (no manual UI setup) and exposes Throttle / Steer / Handbrake / LookBack for VehicleInput.
+    /// On-screen touch controls for the vehicle. Exposes Throttle / Steer / Handbrake / LookBack for VehicleInput.
     ///
-    /// Add this to any empty GameObject (e.g. "Mobile Controls"). It only shows on mobile devices,
-    /// or in the editor when "Force Show In Editor" is on (also works with the Device Simulator).
+    /// UI source:
+    ///   - If "Ui Root" is assigned (made with the editor tool: Tools > Vehicle > Generate Mobile Controls UI,
+    ///     or the button on this component) the buttons you see in the Hierarchy are used. Move, resize,
+    ///     recolour or replace them freely.
+    ///   - If it is empty, a default UI is built at runtime.
     ///
-    /// Layout (landscape):
-    ///   bottom-left : steer left / steer right   (hidden when Use Tilt is on)
-    ///   bottom-right: gas (hidden when Auto Accelerate is on), brake / reverse, drift
-    ///   top-right   : look back
+    /// The UI only shows on mobile devices, or in the editor when "Force Show In Editor" is on.
     /// </summary>
     public class MobileControls : MonoBehaviour
     {
@@ -26,11 +25,11 @@ namespace VehicleSystem
         public bool forceShowInEditor = false;
 
         [Header("Driving")]
-        [Tooltip("Car always accelerates. The brake button brakes, then reverses. Easiest for casual players.")]
+        [Tooltip("Car always accelerates. The brake button brakes, then reverses. Hides the Gas button.")]
         public bool autoAccelerate = true;
 
         [Header("Tilt Steering")]
-        [Tooltip("Steer by tilting the phone like a steering wheel instead of using the arrow buttons.")]
+        [Tooltip("Steer by tilting the phone like a steering wheel. Hides the left / right buttons.")]
         public bool useTilt = false;
         [Tooltip("Degrees of phone rotation for full steering lock.")]
         public float tiltMaxAngle = 30f;
@@ -40,7 +39,17 @@ namespace VehicleSystem
         public bool invertTilt = false;
         public float tiltSmoothing = 12f;
 
-        [Header("Look")]
+        [Header("UI (filled in by the editor tool)")]
+        [Tooltip("Parent object of all touch buttons. Hidden on non-mobile platforms.")]
+        public GameObject uiRoot;
+        public TouchHoldButton left;
+        public TouchHoldButton right;
+        public TouchHoldButton gas;
+        public TouchHoldButton brake;
+        public TouchHoldButton drift;
+        public TouchHoldButton lookBack;
+
+        [Header("Default colours (editor tool + runtime fallback)")]
         public Color idleColor = new Color(1f, 1f, 1f, 0.28f);
         public Color heldColor = new Color(1f, 1f, 1f, 0.6f);
 
@@ -51,8 +60,6 @@ namespace VehicleSystem
         public bool Handbrake { get; private set; }
         public bool LookBack { get; private set; }
 
-        TouchHoldButton left, right, gas, brake, drift, lookBack;
-
         float tiltZero, tiltSmoothed;
         bool tiltCalibrated;
 
@@ -61,6 +68,8 @@ namespace VehicleSystem
         void Awake()
         {
             Active = Application.isMobilePlatform || (Application.isEditor && forceShowInEditor);
+
+            if (uiRoot != null) uiRoot.SetActive(Active);
             if (!Active) return;
 
             if (Application.isMobilePlatform)
@@ -73,7 +82,9 @@ namespace VehicleSystem
             }
 
             EnsureEventSystem();
-            BuildUI();
+
+            if (uiRoot == null) BuildUI();
+            else ApplyOptionVisibility();
         }
 
         void Start()
@@ -82,6 +93,14 @@ namespace VehicleSystem
             if (Active && useTilt && Accelerometer.current != null)
                 InputSystem.EnableDevice(Accelerometer.current);
 #endif
+        }
+
+        /// <summary>Hides the buttons that the current options make unnecessary.</summary>
+        void ApplyOptionVisibility()
+        {
+            if (left != null) left.gameObject.SetActive(!useTilt);
+            if (right != null) right.gameObject.SetActive(!useTilt);
+            if (gas != null) gas.gameObject.SetActive(!autoAccelerate);
         }
 
         static void EnsureEventSystem()
@@ -97,11 +116,14 @@ namespace VehicleSystem
 #endif
         }
 
+        // ------------------------------------------------------------------ runtime fallback UI
+
         void BuildUI()
         {
             var canvasGo = new GameObject("Mobile Controls Canvas",
                 typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasGo.transform.SetParent(transform, false);
+            uiRoot = canvasGo;
 
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -119,15 +141,17 @@ namespace VehicleSystem
 
             if (!useTilt)
             {
-                left  = MakeButton(p, "<",  bl, new Vector2(190f, 190f), 240f);
-                right = MakeButton(p, ">",  bl, new Vector2(470f, 190f), 240f);
+                left = MakeButton(p, "<", bl, new Vector2(190f, 190f), 240f);
+                right = MakeButton(p, ">", bl, new Vector2(470f, 190f), 240f);
             }
 
             if (!autoAccelerate)
                 gas = MakeButton(p, "GAS", br, new Vector2(-200f, 230f), 300f);
 
-            brake = MakeButton(p, "BRAKE", br, new Vector2(autoAccelerate ? -200f : -500f, 190f), autoAccelerate ? 280f : 220f);
-            drift = MakeButton(p, "DRIFT", br, new Vector2(autoAccelerate ? -200f : -200f, autoAccelerate ? 470f : 520f), 190f);
+            brake = MakeButton(p, "BRAKE", br,
+                new Vector2(autoAccelerate ? -200f : -500f, 190f), autoAccelerate ? 280f : 220f);
+            drift = MakeButton(p, "DRIFT", br,
+                new Vector2(-200f, autoAccelerate ? 470f : 520f), 190f);
             lookBack = MakeButton(p, "BACK", tr, new Vector2(-110f, -110f), 130f);
         }
 
@@ -221,33 +245,6 @@ namespace VehicleSystem
 #else
             return 0f;
 #endif
-        }
-    }
-
-    /// <summary>A UI button that reports "held" while a finger / mouse is down on it.</summary>
-    public class TouchHoldButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
-    {
-        public bool Held { get; private set; }
-
-        Image image;
-        Color idle, held;
-
-        public void Init(Image img, Color idleColor, Color heldColor)
-        {
-            image = img;
-            idle = idleColor;
-            held = heldColor;
-        }
-
-        public void OnPointerDown(PointerEventData e) => Set(true);
-        public void OnPointerUp(PointerEventData e) => Set(false);
-        public void OnPointerExit(PointerEventData e) => Set(false);
-        void OnDisable() => Set(false);
-
-        void Set(bool value)
-        {
-            Held = value;
-            if (image != null) image.color = value ? held : idle;
         }
     }
 }
