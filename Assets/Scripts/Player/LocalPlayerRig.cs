@@ -32,6 +32,7 @@ namespace VehicleSystem
         public PauseMenu pauseMenu;
         public ControlsOverlay controlsOverlay;
         public ResetCounterUI resetCounter;
+        public Speedometer speedometer;
 
         [Header("Setup")]
         [Tooltip("ON (single player / existing scenes): empty parts above are searched for in the scene once, at startup. " +
@@ -41,6 +42,7 @@ namespace VehicleSystem
         public bool createControlsOverlay = true;
         public bool createPauseMenu = true;
         public bool createResetCounter = true;
+        public bool createSpeedometer = true;
 
         [Header("Vehicle")]
         [Tooltip("Attached on Start. Leave empty to attach nothing (a spawner calls Attach later).")]
@@ -68,6 +70,7 @@ namespace VehicleSystem
                 if (pauseMenu == null) pauseMenu = FindFirstObjectByType<PauseMenu>();
                 if (controlsOverlay == null) controlsOverlay = FindFirstObjectByType<ControlsOverlay>();
                 if (resetCounter == null) resetCounter = FindFirstObjectByType<ResetCounterUI>();
+                if (speedometer == null) speedometer = FindFirstObjectByType<Speedometer>();
             }
 
             if (input == null) input = gameObject.AddComponent<LocalPlayerInput>();
@@ -79,6 +82,8 @@ namespace VehicleSystem
                 pauseMenu = new GameObject("Pause Menu").AddComponent<PauseMenu>();
             if (createResetCounter && resetCounter == null)
                 resetCounter = new GameObject("Reset Counter").AddComponent<ResetCounterUI>();
+            if (createSpeedometer && speedometer == null)
+                speedometer = new GameObject("Speedometer").AddComponent<Speedometer>();
 
             // hand the parts to each other, so none of them has to search
             if (input.mobile == null) input.mobile = mobile;
@@ -117,6 +122,7 @@ namespace VehicleSystem
 
             cameraRig.SetTarget(car);
             if (resetCounter != null) resetCounter.SetRecovery(recovery);
+            if (speedometer != null) speedometer.SetVehicle(car);
 
             input.ResetPressed += OnResetPressed;
         }
@@ -130,6 +136,7 @@ namespace VehicleSystem
             if (driver != null && ReferenceEquals(driver.Source, input)) driver.SetSource(null);
             if (recovery != null && recovery.cameraRig == cameraRig) recovery.cameraRig = null;
             if (resetCounter != null) resetCounter.SetRecovery(null);
+            if (speedometer != null) speedometer.SetVehicle(null);
 
             Vehicle = null;
             driver = null;

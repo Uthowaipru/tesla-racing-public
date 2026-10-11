@@ -55,7 +55,12 @@ namespace VehicleSystem
     [DisallowMultipleComponent]
     public class VehicleStats : MonoBehaviour
     {
-        [Header("Base Values")]
+        [Header("Data")]
+        [Tooltip("The car's data asset. When assigned, the base values come from it (single source of truth) and the " +
+                 "values below are ignored. VehicleSpawner assigns it automatically when the car is spawned.")]
+        public VehicleDefinition definition;
+
+        [Header("Base Values (only used when no Definition is assigned)")]
         public float motorTorque = 600f;
         public float maxSpeedKmh = 55f;
         public float brakeTorque = 1800f;
@@ -81,39 +86,42 @@ namespace VehicleSystem
             return cache[(int)stat];
         }
 
+        void OnEnable() => VehicleDefinition.ValuesChanged += OnDefinitionChanged;
+        void OnDisable() => VehicleDefinition.ValuesChanged -= OnDefinitionChanged;
+
+        // editing the data asset while playing updates every car that uses it
+        void OnDefinitionChanged(VehicleDefinition changed)
+        {
+            if (changed == definition) Refresh();
+        }
+
+        /// <summary>The base value before modifiers: from the Definition if there is one, else from this component.</summary>
         public float GetBase(VehicleStat stat)
         {
+            VehicleDefinition d = definition;
             switch (stat)
             {
-                case VehicleStat.MotorTorque:      return motorTorque;
-                case VehicleStat.MaxSpeed:         return maxSpeedKmh;
-                case VehicleStat.BrakeTorque:      return brakeTorque;
-                case VehicleStat.SteerAngle:       return steerAngle;
-                case VehicleStat.TireGrip:         return tireGrip;
-                case VehicleStat.SuspensionSpring: return suspensionSpring;
-                case VehicleStat.SuspensionDamper: return suspensionDamper;
-                case VehicleStat.SuspensionTravel: return suspensionTravel;
-                case VehicleStat.AntiRoll:         return antiRoll;
+                case VehicleStat.MotorTorque:      return d != null ? d.motorTorque : motorTorque;
+                case VehicleStat.MaxSpeed:         return d != null ? d.maxSpeedKmh : maxSpeedKmh;
+                case VehicleStat.BrakeTorque:      return d != null ? d.brakeTorque : brakeTorque;
+                case VehicleStat.SteerAngle:       return d != null ? d.steerAngle : steerAngle;
+                case VehicleStat.TireGrip:         return d != null ? d.tireGrip : tireGrip;
+                case VehicleStat.SuspensionSpring: return d != null ? d.suspensionSpring : suspensionSpring;
+                case VehicleStat.SuspensionDamper: return d != null ? d.suspensionDamper : suspensionDamper;
+                case VehicleStat.SuspensionTravel: return d != null ? d.suspensionTravel : suspensionTravel;
+                case VehicleStat.AntiRoll:         return d != null ? d.antiRoll : antiRoll;
                 default: return 0f;
             }
         }
 
         /// <summary>
-        /// Copies the base values of a VehicleDefinition (the car's data asset) onto this car.
-        /// Existing modifiers are kept. Call it right after spawning.
+        /// Makes the car use a VehicleDefinition (its data asset) as the source of its base values.
+        /// Existing modifiers are kept. VehicleSpawner calls this right after spawning.
         /// </summary>
         public void ApplyDefinition(VehicleDefinition def)
         {
             if (def == null) return;
-            motorTorque = def.motorTorque;
-            maxSpeedKmh = def.maxSpeedKmh;
-            brakeTorque = def.brakeTorque;
-            steerAngle = def.steerAngle;
-            tireGrip = def.tireGrip;
-            suspensionSpring = def.suspensionSpring;
-            suspensionDamper = def.suspensionDamper;
-            suspensionTravel = def.suspensionTravel;
-            antiRoll = def.antiRoll;
+            definition = def;
             Refresh();
         }
 

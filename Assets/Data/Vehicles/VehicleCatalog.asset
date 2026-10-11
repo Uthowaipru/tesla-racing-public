@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8660e0bd609b1d146abf4fcc2aa46392, type: 3}
+  m_Name: VehicleCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::VehicleSystem.VehicleCatalog
+  vehicles:
+  - {fileID: 11400000, guid: c938a8a3858648e44aa80ea5b1c23851, type: 2}
+  - {fileID: 11400000, guid: d729144d205a36c45a1b53f762805ee3, type: 2}
