@@ -50,6 +50,14 @@ namespace VehicleSystem
         public TouchHoldButton reset;
         [Tooltip("Opens the pause menu (PauseMenu reads it).")]
         public TouchHoldButton pause;
+        [Tooltip("Spends a battery for a speed boost. Created for you above DRIFT if it is missing.")]
+        public TouchHoldButton boost;
+
+        [Header("Layout when auto-accelerate is OFF (the GAS button is shown)")]
+        [Tooltip("For a UI built in the editor: BRAKE and DRIFT move here when the GAS button appears, and back afterwards.")]
+        public Vector2 brakePositionWhenManual = new Vector2(-500f, 190f);
+        public float brakeSizeWhenManual = 220f;
+        public Vector2 driftPositionWhenManual = new Vector2(-200f, 520f);
 
         [Header("Default colours (editor tool + runtime fallback)")]
         public Color idleColor = new Color(1f, 1f, 1f, 0.28f);
@@ -70,6 +78,14 @@ namespace VehicleSystem
             return value;
         }
 
+        /// <summary>True once per tap of the BOOST button. Reading it clears it.</summary>
+        public bool ConsumeBoost()
+        {
+            bool value = boostRequested;
+            boostRequested = false;
+            return value;
+        }
+
         /// <summary>True once per tap of the PAUSE button. Reading it clears it.</summary>
         public bool ConsumePause()
         {
@@ -87,10 +103,78 @@ namespace VehicleSystem
             if (!value && gas == null) return;
             autoAccelerate = value;
             if (runtimeUi) PositionRuntimeButtons();
+            else ApplyManualLayout();
             ApplyOptionVisibility();
         }
 
-        bool resetRequested, resetWasHeld, pauseRequested, pauseWasHeld, runtimeUi;
+        /// <summary>True when this device has an accelerometer, so tilt steering can work.</summary>
+        public bool TiltAvailable
+        {
+            get
+            {
+#if ENABLE_INPUT_SYSTEM
+                return Accelerometer.current != null;
+#else
+                return false;
+#endif
+            }
+        }
+
+        /// <summary>
+        /// Switch between steering with the &lt; &gt; buttons and steering by tilting the phone (the pause menu's option).
+        /// Refused when the device has no accelerometer, or when there are no steering buttons to go back to, so the
+        /// vehicle can never be left without a way to steer.
+        /// </summary>
+        public void SetUseTilt(bool value)
+        {
+            if (value && !TiltAvailable) return;
+            if (!value && (left == null || right == null)) return;
+
+            useTilt = value;
+            tiltCalibrated = false; // zero the tilt where the phone is held now
+
+#if ENABLE_INPUT_SYSTEM
+            if (value && Accelerometer.current != null) InputSystem.EnableDevice(Accelerometer.current);
+#endif
+            ApplyOptionVisibility();
+        }
+
+        Vector2 brakeAutoPosition, driftAutoPosition;
+        float brakeAutoSize;
+        bool autoLayoutCaptured;
+
+        /// <summary>Remembers where BRAKE and DRIFT were placed in the editor (the auto-accelerate layout).</summary>
+        void CaptureAutoLayout()
+        {
+            if (!autoAccelerate || brake == null || drift == null) return;
+
+            var brakeRt = (RectTransform)brake.transform;
+            var driftRt = (RectTransform)drift.transform;
+            brakeAutoPosition = brakeRt.anchoredPosition;
+            brakeAutoSize = brakeRt.sizeDelta.x;
+            driftAutoPosition = driftRt.anchoredPosition;
+            autoLayoutCaptured = true;
+        }
+
+        /// <summary>Editor-built UI: with the GAS button on screen, BRAKE and DRIFT use the manual layout; otherwise the original one.</summary>
+        void ApplyManualLayout()
+        {
+            if (!autoLayoutCaptured || brake == null || drift == null) return;
+
+            float driftSize = ((RectTransform)drift.transform).sizeDelta.x;
+            if (autoAccelerate)
+            {
+                Place(brake, brakeAutoPosition, brakeAutoSize);
+                Place(drift, driftAutoPosition, driftSize);
+            }
+            else
+            {
+                Place(brake, brakePositionWhenManual, brakeSizeWhenManual);
+                Place(drift, driftPositionWhenManual, driftSize);
+            }
+        }
+
+        bool resetRequested, resetWasHeld, pauseRequested, pauseWasHeld, boostRequested, boostWasHeld, runtimeUi;
         InputModeManager modeManager;
         float tiltZero, tiltSmoothed;
         bool tiltCalibrated;
@@ -112,6 +196,12 @@ namespace VehicleSystem
 
             if (uiRoot == null) BuildUI();
             else ApplyOptionVisibility();
+
+            // a UI made before the boost existed has no BOOST button: add one above DRIFT
+            if (boost == null && uiRoot != null)
+                boost = MakeButton(uiRoot.transform, "BOOST", new Vector2(1f, 0f), new Vector2(-200f, 720f), 170f);
+
+            if (!runtimeUi) CaptureAutoLayout();
 
             modeManager = InputModeManager.Instance;
             SetVisible(modeManager.Mode == InputMode.Touch);
@@ -175,11 +265,9 @@ namespace VehicleSystem
             Vector2 br = new Vector2(1f, 0f);
             Vector2 tr = new Vector2(1f, 1f);
 
-            if (!useTilt)
-            {
-                left = MakeButton(p, "<", bl, new Vector2(190f, 190f), 240f);
-                right = MakeButton(p, ">", bl, new Vector2(470f, 190f), 240f);
-            }
+            // always created, so the pause menu can switch between buttons and tilt (ApplyOptionVisibility hides the unused ones)
+            left = MakeButton(p, "<", bl, new Vector2(190f, 190f), 240f);
+            right = MakeButton(p, ">", bl, new Vector2(470f, 190f), 240f);
 
             gas = MakeButton(p, "GAS", br, new Vector2(-200f, 230f), 300f); // hidden while auto-accelerate is on
 
@@ -262,7 +350,7 @@ namespace VehicleSystem
             {
                 Throttle = Steer = 0f;
                 Handbrake = LookBack = false;
-                resetWasHeld = pauseWasHeld = false;
+                resetWasHeld = pauseWasHeld = boostWasHeld = false;
                 return;
             }
 
@@ -287,6 +375,11 @@ namespace VehicleSystem
             bool pauseHeld = pause != null && pause.Held;
             if (pauseHeld && !pauseWasHeld) pauseRequested = true;
             pauseWasHeld = pauseHeld;
+
+            // BOOST fires once when the button goes down
+            bool boostHeld = boost != null && boost.Held;
+            if (boostHeld && !boostWasHeld) boostRequested = true;
+            boostWasHeld = boostHeld;
         }
 
         // ------------------------------------------------------------------ tilt

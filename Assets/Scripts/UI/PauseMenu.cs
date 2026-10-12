@@ -20,7 +20,8 @@ namespace VehicleSystem
     ///   Open / close : keyboard Esc or P, gamepad Start, mobile PAUSE button (LocalPlayerRig creates this component).
     ///   Navigate     : mouse / touch, or keyboard + gamepad (arrows / WASD / stick / D-pad, Enter or A to select).
     ///                  Esc / Start inside OPTIONS goes back one step.
-    ///   Options      : master volume (- / +) and auto-accelerate on / off. Both are saved with PlayerPrefs.
+    ///   Options      : master volume (- / +), auto-accelerate on / off, and steering with buttons or by tilting the phone
+    ///                  (with a CALIBRATE TILT button). All are saved with PlayerPrefs.
     ///   Main menu    : loads "Main Menu Scene" (must be in File > Build Profiles / Build Settings).
     ///
     /// UI source:
@@ -38,6 +39,7 @@ namespace VehicleSystem
 
         const string VolumeKey = "VehicleSystem.MasterVolume";
         const string AutoAccelerateKey = "VehicleSystem.AutoAccelerate";
+        const string TiltSteeringKey = "VehicleSystem.TiltSteering";
 
         [Header("Behaviour")]
         [Tooltip("Scene loaded by MAIN MENU (add it to the Build Settings). Empty = scene with build index 0.")]
@@ -62,9 +64,15 @@ namespace VehicleSystem
         public Button volumeDownButton;
         public Button volumeUpButton;
         public Button autoAccelerateButton;
+        [Tooltip("Optional. STEERING: BUTTONS / TILT. Created for you if missing (Add Steering Option in the Inspector puts it in the Hierarchy).")]
+        public Button steeringButton;
+        [Tooltip("Optional. Only shown while tilt steering is on.")]
+        public Button calibrateButton;
         public Button backButton;
         public Text volumeText;
         public Text autoAccelerateText;
+        [Tooltip("The label of the steering button. Found automatically if empty.")]
+        public Text steeringText;
 
         [Header("Default look (editor tool + runtime fallback)")]
         public int fontSize = 36;
@@ -109,12 +117,16 @@ namespace VehicleSystem
 
             EnsureEventSystem();
 
+            CreateSteeringRows(); // menus built before the steering option existed get it here
+
             resumeButton.onClick.AddListener(Resume);
             optionsButton.onClick.AddListener(ShowOptions);
             mainMenuButton.onClick.AddListener(GoToMainMenu);
             volumeDownButton.onClick.AddListener(() => ChangeVolume(-volumeStep));
             volumeUpButton.onClick.AddListener(() => ChangeVolume(+volumeStep));
             autoAccelerateButton.onClick.AddListener(ToggleAutoAccelerate);
+            steeringButton.onClick.AddListener(ToggleSteering);
+            if (calibrateButton != null) calibrateButton.onClick.AddListener(CalibrateTilt);
             backButton.onClick.AddListener(ShowMain);
 
 #if ENABLE_INPUT_SYSTEM
@@ -141,6 +153,9 @@ namespace VehicleSystem
         {
             if (PlayerPrefs.HasKey(AutoAccelerateKey))
                 SetAutoAccelerate(PlayerPrefs.GetInt(AutoAccelerateKey) == 1);
+
+            if (PlayerPrefs.HasKey(TiltSteeringKey))
+                SetTilt(PlayerPrefs.GetInt(TiltSteeringKey) == 1);
         }
 
 #if ENABLE_INPUT_SYSTEM
@@ -321,10 +336,61 @@ namespace VehicleSystem
             else if (playerInput != null) playerInput.autoAccelerateWithoutMobileUI = value;
         }
 
+        void ToggleSteering()
+        {
+            SetTilt(!GetTilt());
+            PlayerPrefs.SetInt(TiltSteeringKey, GetTilt() ? 1 : 0); // saves what really took effect
+            RefreshOptionTexts();
+        }
+
+        bool GetTilt() => mobile != null && mobile.useTilt;
+
+        void SetTilt(bool value)
+        {
+            if (mobile != null) mobile.SetUseTilt(value);
+        }
+
+        void CalibrateTilt()
+        {
+            if (mobile != null) mobile.CalibrateTilt(); // the phone angle at the next frame becomes "straight"
+        }
+
         void RefreshOptionTexts()
         {
             volumeText.text = $"VOLUME  {Mathf.RoundToInt(volume * 100f)}%";
             autoAccelerateText.text = $"AUTO-ACCELERATE: {(GetAutoAccelerate() ? "ON" : "OFF")}";
+
+            bool tilt = GetTilt();
+            bool available = mobile != null && mobile.TiltAvailable;
+            if (steeringText != null)
+                steeringText.text = tilt ? "STEERING: TILT" : available ? "STEERING: BUTTONS" : "STEERING: BUTTONS (no tilt sensor)";
+            steeringButton.interactable = available || tilt;
+            if (calibrateButton != null) calibrateButton.gameObject.SetActive(tilt);
+        }
+
+        /// <summary>
+        /// Adds the STEERING option (buttons / tilt) and the CALIBRATE TILT button to the options panel, just below
+        /// AUTO-ACCELERATE. Does nothing for the ones that already exist. Used at runtime for older menus and by the editor.
+        /// </summary>
+        public void CreateSteeringRows()
+        {
+            if (optionsPanel == null || autoAccelerateButton == null) return;
+
+            int index = autoAccelerateButton.transform.GetSiblingIndex() + 1;
+
+            if (steeringButton == null)
+            {
+                steeringButton = MakeButton(optionsPanel.transform, "STEERING: BUTTONS", 560f, 90f);
+                steeringButton.transform.SetSiblingIndex(index++);
+            }
+            if (steeringText == null) steeringText = steeringButton.GetComponentInChildren<Text>();
+
+            if (calibrateButton == null)
+            {
+                calibrateButton = MakeButton(optionsPanel.transform, "CALIBRATE TILT", 560f, 90f);
+                calibrateButton.transform.SetSiblingIndex(index);
+                calibrateButton.gameObject.SetActive(false); // shown while tilt steering is on
+            }
         }
 
         // ------------------------------------------------------------------ building the UI
@@ -382,6 +448,7 @@ namespace VehicleSystem
 
             autoAccelerateButton = MakeButton(optionsPanel.transform, "AUTO-ACCELERATE: ON", 560f, 90f);
             autoAccelerateText = autoAccelerateButton.GetComponentInChildren<Text>();
+            CreateSteeringRows();
             backButton = MakeButton(optionsPanel.transform, "BACK", 560f, 90f);
 
             optionsPanel.SetActive(false); // switch it on in the Hierarchy to style it
@@ -560,6 +627,16 @@ namespace VehicleSystem
                     {
                         Selection.activeGameObject = menu.uiRoot;
                         EditorGUIUtility.PingObject(menu.uiRoot);
+                    }
+                    if (menu.steeringButton == null && GUILayout.Button("Add Steering Option (keeps your edits)"))
+                    {
+                        Undo.RecordObject(menu, "Add Steering Option");
+                        menu.CreateSteeringRows();
+                        if (menu.steeringButton != null) Undo.RegisterCreatedObjectUndo(menu.steeringButton.gameObject, "Add Steering Option");
+                        if (menu.calibrateButton != null) Undo.RegisterCreatedObjectUndo(menu.calibrateButton.gameObject, "Add Calibrate Button");
+                        EditorUtility.SetDirty(menu);
+                        if (menu.gameObject.scene.IsValid())
+                            EditorSceneManager.MarkSceneDirty(menu.gameObject.scene);
                     }
                     if (GUILayout.Button("Rebuild Default UI (replaces your edits)"))
                         PauseMenuBuilder.Build(menu);

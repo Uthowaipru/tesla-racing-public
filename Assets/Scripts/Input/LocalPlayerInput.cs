@@ -24,6 +24,7 @@ namespace VehicleSystem
     ///   Drift (handbrake)  Space                 A / Cross or Right bumper       DRIFT
     ///   Look back (hold)   C                     Right stick click               BACK
     ///   Reset vehicle      R                     Y / Triangle                    RESET
+    ///   Boost (battery)    Left Shift            X / Square or Left bumper       BOOST
     ///
     /// Auto-accelerate (MobileControls.autoAccelerate) applies to ALL devices: the car drives forward on its own,
     /// the brake control brakes and then reverses, exactly like the BRAKE button on touch. Brake always wins.
@@ -55,10 +56,13 @@ namespace VehicleSystem
         /// <summary>Fired once when the player presses reset (key, pad button or touch RESET).</summary>
         public event Action ResetPressed;
 
+        /// <summary>Fired once when the player presses BOOST (key, pad button or touch BOOST).</summary>
+        public event Action BoostPressed;
+
         public DriveInput Read() => Current;
 
 #if ENABLE_INPUT_SYSTEM
-        InputAction accelAction, brakeAction, steerAction, handbrakeAction, lookBackAction, resetAction;
+        InputAction accelAction, brakeAction, steerAction, handbrakeAction, lookBackAction, resetAction, boostAction;
 #endif
 
         void Awake()
@@ -99,6 +103,11 @@ namespace VehicleSystem
             resetAction = new InputAction("ResetVehicle", InputActionType.Button);
             resetAction.AddBinding("<Keyboard>/r");
             resetAction.AddBinding("<Gamepad>/buttonNorth");
+
+            boostAction = new InputAction("Boost", InputActionType.Button);
+            boostAction.AddBinding("<Keyboard>/leftShift");
+            boostAction.AddBinding("<Gamepad>/buttonWest");
+            boostAction.AddBinding("<Gamepad>/leftShoulder");
 #endif
         }
 
@@ -111,6 +120,7 @@ namespace VehicleSystem
             handbrakeAction.Enable();
             lookBackAction.Enable();
             resetAction.Enable();
+            boostAction.Enable();
         }
 
         void OnDisable()
@@ -121,6 +131,7 @@ namespace VehicleSystem
             handbrakeAction.Disable();
             lookBackAction.Disable();
             resetAction.Disable();
+            boostAction.Disable();
         }
 
         void OnDestroy()
@@ -131,6 +142,7 @@ namespace VehicleSystem
             handbrakeAction?.Dispose();
             lookBackAction?.Dispose();
             resetAction?.Dispose();
+            boostAction?.Dispose();
         }
 #endif
 
@@ -145,7 +157,7 @@ namespace VehicleSystem
             }
 
             float throttle, steer;
-            bool hand, lookBack, reset;
+            bool hand, lookBack, reset, boost;
 
             bool touch = InputModeManager.Instance.Mode == InputMode.Touch && mobile != null;
 
@@ -157,6 +169,7 @@ namespace VehicleSystem
                 hand = mobile.Handbrake;
                 lookBack = mobile.LookBack;
                 reset = mobile.ConsumeReset();
+                boost = mobile.ConsumeBoost();
             }
             else
             {
@@ -168,6 +181,7 @@ namespace VehicleSystem
                 hand = handbrakeAction.IsPressed();
                 lookBack = lookBackAction.IsPressed();
                 reset = resetAction.WasPressedThisFrame();
+                boost = boostAction.WasPressedThisFrame();
 #else
                 float v = Input.GetAxisRaw("Vertical");
                 gas = Mathf.Max(0f, v);
@@ -176,6 +190,7 @@ namespace VehicleSystem
                 hand = Input.GetKey(KeyCode.Space);
                 lookBack = Input.GetKey(KeyCode.C);
                 reset = Input.GetKeyDown(KeyCode.R);
+                boost = Input.GetKeyDown(KeyCode.LeftShift);
 #endif
                 // same rules as the touch buttons: brake wins (brakes, then reverses), otherwise
                 // auto-accelerate drives forward, otherwise the accelerate control decides.
@@ -187,6 +202,7 @@ namespace VehicleSystem
             LookBack = lookBack;
 
             if (reset) ResetPressed?.Invoke();
+            if (boost) BoostPressed?.Invoke();
         }
     }
 }

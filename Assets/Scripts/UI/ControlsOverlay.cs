@@ -132,6 +132,7 @@ namespace VehicleSystem
                 rows.Add(("Drift (handbrake)", "A / Cross  or  Right Bumper"));
                 rows.Add(("Look back (hold)", "Right Stick Click"));
                 rows.Add(("Reset vehicle", "Y / Triangle"));
+                rows.Add(("Boost (battery)", "X / Square  or  Left Bumper"));
                 rows.Add(("Pause", "Start / Menu"));
                 if (!chase) rows.Add(("Look around", "Right Stick"));
             }
@@ -143,6 +144,7 @@ namespace VehicleSystem
                 rows.Add(("Drift (handbrake)", "Space"));
                 rows.Add(("Look back (hold)", "C"));
                 rows.Add(("Reset vehicle", "R"));
+                rows.Add(("Boost (battery)", "Left Shift"));
                 rows.Add(("Pause", "Esc / P"));
                 if (!chase) rows.Add(("Look around", "Mouse"));
             }

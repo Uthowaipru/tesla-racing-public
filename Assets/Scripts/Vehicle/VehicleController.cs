@@ -102,6 +102,10 @@ namespace VehicleSystem
         public float ForwardSpeed { get; private set; }          // m/s, + forward
         public float SpeedKmh => Mathf.Abs(ForwardSpeed) * 3.6f;
         public VehicleStats Stats => stats;
+        /// <summary>True while at least one wheel touches the ground.</summary>
+        public bool IsGrounded { get; private set; }
+        /// <summary>0..1, how far the (eased) handbrake is applied. Drifting is detected with it.</summary>
+        public float HandbrakeAmount => handbrakeAmount;
 
         Rigidbody rb;
         VehicleStats stats;
@@ -264,6 +268,15 @@ namespace VehicleSystem
             float dt = Time.fixedDeltaTime;
 
             ForwardSpeed = Vector3.Dot(Velocity, transform.forward);
+
+            bool grounded = false;
+            for (int i = 0; i < wheels.Count; i++)
+            {
+                var gw = wheels[i];
+                if (gw != null && gw.collider != null && gw.collider.isGrounded) { grounded = true; break; }
+            }
+            IsGrounded = grounded;
+
             float maxSpeed = Mathf.Max(1f, stats.Get(VehicleStat.MaxSpeed) / 3.6f);
             float speedRatio = Mathf.Clamp01(Mathf.Abs(ForwardSpeed) / maxSpeed);
 

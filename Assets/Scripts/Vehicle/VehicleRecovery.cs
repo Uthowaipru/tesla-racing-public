@@ -7,9 +7,10 @@ namespace VehicleSystem
     /// <summary>
     /// Gets the vehicle out of trouble. Two SEPARATE paths:
     ///   1. Manual : RecoverManual() (LocalPlayerRig calls it for the R key, gamepad Y/North, and the mobile RESET button).
-    ///               Puts the car upright, lifts it by "Lift Height" and moves it "Manual Back Distance" backwards
-    ///               (stopping short of anything behind it). No searching, instant and predictable.
-    ///   2. Auto   : - flipped / on its side for a while  -> RecoverAuto(): upright at the nearest clear spot.
+    ///               Costs one repair charge and teleports the car back to a SAFE PLACE it drove through a few seconds
+    ///               ago: upright and standing on the ground (no lift, no hop, no move backward). Safe places are
+    ///               remembered all the time while driving.
+    ///   2. Auto   : - flipped / on its side for a while  -> RecoverAuto(): upright at the nearest clear spot, on the ground.
     ///               - stuck while the player is driving  -> "Reverse Out": the script drives the car backwards
     ///                 (or forwards if it was reversing) for a moment while steering away from the obstacle,
     ///                 like arcade racing games. If that fails a couple of times it falls back to RecoverAuto().
@@ -22,23 +23,19 @@ namespace VehicleSystem
     {
         public enum StuckRecoverMode { ReverseOut, NearbyClearSpot, LastSafePoint }
 
-        [Header("Manual Reset (button / key)")]
-        [Tooltip("The reset button / key lifts the car this high (meters).")]
-        public float liftHeight = 1.2f;
-        [Tooltip("The reset button / key also moves the car this far BACKWARD (meters). It stops short of walls behind the car. 0 = lift only.")]
-        public float manualBackDistance = 3f;
-        [Tooltip("Minimum time between two resets (seconds).")]
+        [Header("Manual Recovery (button / key)")]
+        [Tooltip("Minimum time between two recoveries (seconds).")]
         public float cooldown = 1.5f;
+        [Tooltip("Manual recovery never uses a safe place newer than this (seconds), so you are not put back into the same trouble.")]
+        public float safePointMinAge = 2f;
 
         [Header("Manual Reset Limit")]
         [Tooltip("Players may only use the manual reset a limited number of times per match. Auto recovery is never limited or counted.")]
         public bool limitManualResets = true;
-        [Tooltip("Manual resets allowed per match.")]
+        [Tooltip("Most manual recoveries (repair charges) the player can carry.")]
         public int maxManualResets = 3;
-
-        [Header("Auto Recovery")]
-        [Tooltip("Lift used by automatic recovery when no clear spot is found nearby (meters).")]
-        public float autoFallbackLift = 1.2f;
+        [Tooltip("Charges at the start of a match. Collected repair kits add more, up to the maximum above.")]
+        public int startingManualResets = 3;
 
         [Header("Find Clear Spot (used by auto recovery only)")]
         [Tooltip("If the car would overlap something where it is, move it to the nearest free spot.")]
@@ -53,7 +50,7 @@ namespace VehicleSystem
         public float clearance = 0.25f;
         [Tooltip("Obstacles lower than this above the wheels' bottom are ignored (curbs, small bumps).")]
         public float ignoreBottomHeight = 0.35f;
-        [Tooltip("The car is dropped from this height above the ground (meters).")]
+        [Tooltip("The car is placed this far above the ground (meters). Keep it small so a recovery never looks like a hop.")]
         public float dropMargin = 0.15f;
 
         [Header("Auto: flipped")]
@@ -86,11 +83,11 @@ namespace VehicleSystem
         [Tooltip("Failed tries are forgotten after this many seconds.")]
         public float attemptMemoryTime = 8f;
 
-        [Header("Last Safe Point (stuck mode)")]
-        [Tooltip("How often a safe position is remembered (seconds).")]
+        [Header("Safe Places (manual recovery and the Last Safe Point stuck mode)")]
+        [Tooltip("How often a safe place is remembered while driving normally (seconds).")]
         public float safePointInterval = 1f;
-        [Tooltip("How many positions are remembered. The oldest one is used.")]
-        public int safePointCount = 4;
+        [Tooltip("How far back in time safe places are kept (seconds).")]
+        public float safeHistorySeconds = 12f;
 
         [Header("Camera")]
         [Tooltip("Assigned by LocalPlayerRig.Attach() for the local player's car. Leave empty for bots / remote cars.")]
@@ -109,6 +106,9 @@ namespace VehicleSystem
 
         public event Action Recovered;
 
+        /// <summary>Fired after a successful MANUAL recovery (the place to restore health later).</summary>
+        public event Action ManualRecovered;
+
         /// <summary>Manual resets still available this match.</summary>
         public int ManualResetsLeft { get; private set; }
 
@@ -119,13 +119,23 @@ namespace VehicleSystem
         public event Action ManualResetDenied;
 
         /// <summary>Give the manual resets back. Call this when a new match starts.</summary>
-        public void ResetManualUses() => ManualResetsLeft = Mathf.Max(0, maxManualResets);
+        public void ResetManualUses() => ManualResetsLeft = Mathf.Clamp(startingManualResets, 0, Mathf.Max(0, maxManualResets));
+
+        /// <summary>A repair kit was collected: adds charges, up to the maximum. Returns false if already full.</summary>
+        public bool AddManualUse(int amount = 1)
+        {
+            int max = Mathf.Max(0, maxManualResets);
+            if (ManualResetsLeft >= max) return false;
+            ManualResetsLeft = Mathf.Min(max, ManualResetsLeft + Mathf.Max(0, amount));
+            return true;
+        }
 
         Rigidbody rb;
         VehicleController vehicle;
 
         float flippedTimer, stuckTimer, cooldownTimer, safeTimer, lastDriveSign;
-        readonly Queue<Pose> safePoses = new Queue<Pose>();
+        struct SafePlace { public Vector3 position; public Quaternion rotation; public float time; }
+        readonly List<SafePlace> safePlaces = new List<SafePlace>();
 
         // reverse-out state
         bool reversing;
@@ -174,8 +184,9 @@ namespace VehicleSystem
         }
 
         /// <summary>
-        /// MANUAL reset (R key / RESET button): upright, lifted by Lift Height and moved backward.
-        /// Uses up one of the limited resets. Returns false (and does nothing) when none are left.
+        /// MANUAL recovery (R key / RESET button): teleports the car back to a safe place it drove through a few
+        /// seconds ago, upright and on the ground. Uses up one repair charge. Returns false (and does nothing)
+        /// when none are left.
         /// </summary>
         public bool RecoverManual()
         {
@@ -189,33 +200,47 @@ namespace VehicleSystem
                 ManualResetsLeft--;
             }
 
-            Quaternion rot = FlatRotation();
-            Vector3 back = rot * Vector3.back;
+            TeleportToLastSafePoint();
+            ManualRecovered?.Invoke();
+            return true;
+        }
 
-            // how far back is free? (box the size of the car, swept backwards; the car's own colliders are ignored)
-            float free = Mathf.Max(0f, manualBackDistance);
-            if (free > 0f)
+        /// <summary>
+        /// Puts the car on the newest remembered safe place that is old enough and free. If there is none (for example
+        /// right after spawning) the car is stood upright where it is. No charge is used, so a destroyed vehicle can
+        /// use this to respawn too.
+        /// </summary>
+        public void TeleportToLastSafePoint()
+        {
+            float now = Time.time;
+
+            // newest first, skipping places that are too recent (that is where the trouble started)
+            for (int i = safePlaces.Count - 1; i >= 0; i--)
             {
-                Vector3 center = transform.position + rot * testCenterLocal;
-                int n = Physics.BoxCastNonAlloc(center, testHalfExtents, back, rayHits, rot, free,
-                    obstacleLayers, QueryTriggerInteraction.Ignore);
+                SafePlace p = safePlaces[i];
+                if (now - p.time < safePointMinAge) continue;
 
-                for (int i = 0; i < n; i++)
-                {
-                    if (rayHits[i].collider.transform.IsChildOf(transform)) continue;
-                    if (rayHits[i].distance < free) free = rayHits[i].distance;
-                }
-                free = Mathf.Max(0f, free - 0.1f);
+                Vector3 spot = default;
+                if (IsClear(p.position, p.rotation)) spot = p.position;
+                else if (!findClearSpot || !TryFindClearSpot(p.position, p.position.y, p.rotation, out spot)) continue;
+
+                // forget the places after this one: they led into the trouble
+                safePlaces.RemoveRange(i + 1, safePlaces.Count - (i + 1));
+                Teleport(spot, p.rotation);
+                return;
             }
 
-            Teleport(transform.position + back * free + Vector3.up * liftHeight, rot);
-            return true;
+            // nothing remembered yet: stand upright right here
+            PlaceOnGround(transform.position, FlatRotation());
         }
 
         /// <summary>Kept so older code still compiles. Same as RecoverManual().</summary>
         public void Recover() => RecoverManual();
 
-        /// <summary>AUTO recovery: upright at the nearest clear spot (falls back to a small lift in place).</summary>
+        /// <summary>
+        /// AUTO recovery: upright at the nearest clear spot. If there is none, back to a remembered safe place, or
+        /// upright on the ground where it is. It never lifts the car.
+        /// </summary>
         public void RecoverAuto()
         {
             Quaternion rot = FlatRotation();
@@ -226,21 +251,14 @@ namespace VehicleSystem
                 return;
             }
 
-            Teleport(transform.position + Vector3.up * autoFallbackLift, rot);
+            TeleportToLastSafePoint();
         }
 
         /// <summary>Put the car back where it was driving a few seconds ago (falls back to RecoverAuto()).</summary>
         public void RecoverToSafePoint()
         {
-            if (safePoses.Count == 0) { RecoverAuto(); return; }
-
-            Pose p = safePoses.Peek();
-            safePoses.Clear();
-
-            if (findClearSpot && TryFindClearSpot(p.position, p.position.y, p.rotation, out Vector3 spot))
-                Teleport(spot, p.rotation);
-            else
-                Teleport(p.position + Vector3.up * 0.5f, p.rotation);
+            if (safePlaces.Count == 0) { RecoverAuto(); return; }
+            TeleportToLastSafePoint();
         }
 
         /// <summary>Re-measure the car (call after changing its model at runtime).</summary>
@@ -320,7 +338,7 @@ namespace VehicleSystem
             if (recoverWhenStuck && upDot >= flippedThreshold && trying && speed < stuckSpeed) stuckTimer += dt;
             else stuckTimer = 0f;
 
-            if (stuckMode == StuckRecoverMode.LastSafePoint) RecordSafePoint(dt, upDot, speed);
+            RecordSafePoint(dt, upDot, speed);
 
             float flippedProgress = flippedTime > 0f ? flippedTimer / flippedTime : 0f;
             float stuckProgress = stuckDelay > 0f ? stuckTimer / stuckDelay : 0f;
@@ -428,11 +446,22 @@ namespace VehicleSystem
             if (safeTimer < safePointInterval) return;
             safeTimer = 0f;
 
-            // only remember good spots: upright, on the ground, actually driving
+            // only remember good places: upright, on the ground, driving forward at a normal pace
             if (upDot < 0.8f || speed < 3f || !AnyWheelGrounded()) return;
+            if (Vector3.Dot(Velocity, transform.forward) < 2f) return;
 
-            safePoses.Enqueue(new Pose(transform.position, FlatRotation()));
-            while (safePoses.Count > Mathf.Max(1, safePointCount)) safePoses.Dequeue();
+            // face the direction of travel (the road direction), not a sideways drift
+            Vector3 heading = Vector3.ProjectOnPlane(Velocity, Vector3.up);
+            Quaternion rot = heading.sqrMagnitude > 1f
+                ? Quaternion.LookRotation(heading.normalized, Vector3.up)
+                : FlatRotation();
+
+            float now = Time.time;
+            safePlaces.Add(new SafePlace { position = transform.position, rotation = rot, time = now });
+
+            // forget places that are too old
+            float oldest = now - Mathf.Max(safePointMinAge + 1f, safeHistorySeconds);
+            while (safePlaces.Count > 0 && safePlaces[0].time < oldest) safePlaces.RemoveAt(0);
         }
 
         bool AnyWheelGrounded()
@@ -513,6 +542,16 @@ namespace VehicleSystem
         }
 
         // ------------------------------------------------------------------ helpers
+
+        /// <summary>Stands the car upright on the ground below "position": only the small Drop Margin, never a lift.</summary>
+        void PlaceOnGround(Vector3 position, Quaternion rotation)
+        {
+            float y = position.y;
+            if (TryGetGround(position, position.y, out float groundY))
+                y = groundY - localBounds.min.y + dropMargin;
+
+            Teleport(new Vector3(position.x, y, position.z), rotation);
+        }
 
         void Teleport(Vector3 position, Quaternion rotation)
         {

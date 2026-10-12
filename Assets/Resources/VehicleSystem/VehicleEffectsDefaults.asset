@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94710d4bbcd6c08428b7693a4d071463, type: 3}
+  m_Name: VehicleEffectsDefaults
+  m_EditorClassIdentifier: Assembly-CSharp::VehicleSystem.VehicleEffectsDefaults
+  trail: {fileID: 6720275257389467276, guid: 291f29d1418715f4c906d23d3bc790bb, type: 3}
+  hitSparks: {fileID: 3513699528380846471, guid: a439ef710331b584f92b7608d680468b, type: 3}
+  hitDust: {fileID: 8786671696945706250, guid: 95efdb825b472014c80147d88d652458, type: 3}
+  lowHealthSmoke: {fileID: 7765102291678821848, guid: 9e40e89d2d244004cbdb89a4fe6ef4af, type: 3}
+  explosion: {fileID: 6976484348282901687, guid: b780270c0ec00b54c8c1f751ebe60f0e, type: 3}

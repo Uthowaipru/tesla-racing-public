@@ -27,7 +27,7 @@ namespace VehicleSystem
 
         [Header("Text")]
         [Tooltip("{0} = resets left, {1} = resets per match.")]
-        public string format = "RESETS LEFT: {0} / {1}";
+        public string format = "REPAIR KITS: {0} / {1}";
         public Color normalColor = Color.white;
         [Tooltip("Colour when no resets are left, or while the counter pulses after a refused reset.")]
         public Color emptyColor = new Color(1f, 0.35f, 0.3f, 1f);

@@ -17,9 +17,9 @@ MonoBehaviour:
   icon: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
   prefab: {fileID: 6475492854988622717, guid: 31a98a2d560dfb24ca82bed666da98ad, type: 3}
   previewPrefab: {fileID: 884082175290608786, guid: 5606698fa9e14884faa7bda43fe9c909, type: 3}
-  motorTorque: 800
+  motorTorque: 3500
   maxSpeedKmh: 130
-  brakeTorque: 1800
+  brakeTorque: 3500
   steerAngle: 32
   tireGrip: 1
   suspensionSpring: 18000

@@ -94,6 +94,7 @@ namespace VehicleSystem
             }
 
             if (car.TryGetComponent(out VehicleStats stats)) stats.ApplyDefinition(def);
+            if (car.TryGetComponent(out VehicleNameTag nameTag)) nameTag.SetName(slot.displayName);
 
             if (slot.controller == SlotController.LocalHuman && localRig != null)
             {

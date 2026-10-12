@@ -33,6 +33,9 @@ namespace VehicleSystem
         public ControlsOverlay controlsOverlay;
         public ResetCounterUI resetCounter;
         public Speedometer speedometer;
+        public HealthBar healthBar;
+        public RespawnCountdown respawnCountdown;
+        public PickupHud pickupHud;
 
         [Header("Setup")]
         [Tooltip("ON (single player / existing scenes): empty parts above are searched for in the scene once, at startup. " +
@@ -43,6 +46,9 @@ namespace VehicleSystem
         public bool createPauseMenu = true;
         public bool createResetCounter = true;
         public bool createSpeedometer = true;
+        public bool createHealthBar = true;
+        public bool createRespawnCountdown = true;
+        public bool createPickupHud = true;
 
         [Header("Vehicle")]
         [Tooltip("Attached on Start. Leave empty to attach nothing (a spawner calls Attach later).")]
@@ -55,6 +61,8 @@ namespace VehicleSystem
 
         VehicleDriver driver;
         VehicleRecovery recovery;
+        VehicleNameTag localTag;
+        VehicleBoost boost;
 
         // ------------------------------------------------------------------ setup
 
@@ -71,6 +79,9 @@ namespace VehicleSystem
                 if (controlsOverlay == null) controlsOverlay = FindFirstObjectByType<ControlsOverlay>();
                 if (resetCounter == null) resetCounter = FindFirstObjectByType<ResetCounterUI>();
                 if (speedometer == null) speedometer = FindFirstObjectByType<Speedometer>();
+                if (healthBar == null) healthBar = FindFirstObjectByType<HealthBar>();
+                if (respawnCountdown == null) respawnCountdown = FindFirstObjectByType<RespawnCountdown>();
+                if (pickupHud == null) pickupHud = FindFirstObjectByType<PickupHud>();
             }
 
             if (input == null) input = gameObject.AddComponent<LocalPlayerInput>();
@@ -84,6 +95,12 @@ namespace VehicleSystem
                 resetCounter = new GameObject("Reset Counter").AddComponent<ResetCounterUI>();
             if (createSpeedometer && speedometer == null)
                 speedometer = new GameObject("Speedometer").AddComponent<Speedometer>();
+            if (createHealthBar && healthBar == null)
+                healthBar = new GameObject("Health Bar").AddComponent<HealthBar>();
+            if (createRespawnCountdown && respawnCountdown == null)
+                respawnCountdown = new GameObject("Respawn Countdown").AddComponent<RespawnCountdown>();
+            if (createPickupHud && pickupHud == null)
+                pickupHud = new GameObject("Pickup HUD").AddComponent<PickupHud>();
 
             // hand the parts to each other, so none of them has to search
             if (input.mobile == null) input.mobile = mobile;
@@ -123,8 +140,17 @@ namespace VehicleSystem
             cameraRig.SetTarget(car);
             if (resetCounter != null) resetCounter.SetRecovery(recovery);
             if (speedometer != null) speedometer.SetVehicle(car);
+            if (healthBar != null) healthBar.SetVehicle(car);
+            if (respawnCountdown != null) respawnCountdown.SetVehicle(car);
+            if (pickupHud != null) pickupHud.SetVehicle(car);
+
+            car.TryGetComponent(out boost);
+
+            // the local player's own vehicle gets no floating name tag by default
+            if (car.TryGetComponent(out localTag)) localTag.SetIsLocalPlayer(true);
 
             input.ResetPressed += OnResetPressed;
+            input.BoostPressed += OnBoostPressed;
         }
 
         /// <summary>Stop driving the current car. It holds still until another source drives it.</summary>
@@ -132,15 +158,30 @@ namespace VehicleSystem
         {
             if (Vehicle == null) return;
 
-            if (input != null) input.ResetPressed -= OnResetPressed;
+            if (input != null)
+            {
+                input.ResetPressed -= OnResetPressed;
+                input.BoostPressed -= OnBoostPressed;
+            }
             if (driver != null && ReferenceEquals(driver.Source, input)) driver.SetSource(null);
             if (recovery != null && recovery.cameraRig == cameraRig) recovery.cameraRig = null;
             if (resetCounter != null) resetCounter.SetRecovery(null);
             if (speedometer != null) speedometer.SetVehicle(null);
+            if (healthBar != null) healthBar.SetVehicle(null);
+            if (respawnCountdown != null) respawnCountdown.SetVehicle(null);
+            if (pickupHud != null) pickupHud.SetVehicle(null);
+            if (localTag != null) localTag.SetIsLocalPlayer(false);
 
             Vehicle = null;
+            localTag = null;
+            boost = null;
             driver = null;
             recovery = null;
+        }
+
+        void OnBoostPressed()
+        {
+            if (boost != null) boost.TryBoost();
         }
 
         void OnResetPressed()
