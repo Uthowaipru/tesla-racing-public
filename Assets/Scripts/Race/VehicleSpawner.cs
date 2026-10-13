@@ -23,6 +23,11 @@ namespace VehicleSystem
         [Tooltip("Found in the scene if empty. Turn OFF its 'Auto Attach Scene Vehicle' option: this spawner attaches the car.")]
         public LocalPlayerRig localRig;
 
+        [Header("Road")]
+        [Tooltip("Found in the scene if empty. With a road, vehicles start on it instead of at the spawn points.")]
+        public RoadGenerator road;
+        public bool spawnOnRoadStart = true;
+
         [Header("Single player")]
         [Tooltip("On Start: spawn the vehicle chosen in the selector for the local player.")]
         public bool spawnLocalPlayerOnStart = true;
@@ -33,6 +38,7 @@ namespace VehicleSystem
         void Start()
         {
             if (localRig == null) localRig = FindFirstObjectByType<LocalPlayerRig>();
+            if (road == null) road = FindFirstObjectByType<RoadGenerator>();
             if (spawnLocalPlayerOnStart) SpawnLocalFromProfile();
         }
 
@@ -80,8 +86,8 @@ namespace VehicleSystem
                 return null;
             }
 
-            Transform point = SpawnPoint(slot.slotId);
-            GameObject go = Instantiate(def.prefab, point.position, point.rotation);
+            Pose pose = SpawnPose(slot.slotId);
+            GameObject go = Instantiate(def.prefab, pose.position, pose.rotation);
             go.name = $"{def.displayName} ({slot.displayName})";
 
             // the VehicleController may be on the prefab root or on a child (e.g. root "car" > "car lowpoly" > ...)
@@ -103,6 +109,14 @@ namespace VehicleSystem
             }
 
             return car;
+        }
+
+        Pose SpawnPose(int slotId)
+        {
+            if (spawnOnRoadStart && road != null && road.IsStarted) return road.GetStartPose(slotId);
+
+            Transform point = SpawnPoint(slotId);
+            return new Pose(point.position, point.rotation);
         }
 
         Transform SpawnPoint(int slotId)

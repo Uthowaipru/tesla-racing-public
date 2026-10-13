@@ -31,6 +31,17 @@ namespace VehicleSystem
         [Tooltip("Share of the assist that stays on while the handbrake is held. 0 = free drift.")]
         [Range(0f, 1f)] public float handbrakeFactor = 0.2f;
 
+        [Header("Drift angle limit (stops the car spinning and sliding backward)")]
+        [Tooltip("While drifting, the direction the car travels may not stray further than this from where its nose points.")]
+        public bool limitDriftAngle = true;
+        [Range(15f, 80f)] public float maxDriftAngle = 45f;
+        [Tooltip("How fast (degrees per second) the travel direction is turned back toward the nose when over the limit.")]
+        public float driftCorrection = 120f;
+        [Tooltip("The limit stays on this long after the handbrake is released (seconds).")]
+        public float driftTail = 0.6f;
+        [Tooltip("Below this speed (m/s) the limit does nothing.")]
+        public float minDriftSpeed = 3f;
+
         [Header("Speed range")]
         [Tooltip("Below this speed (m/s) the assist is off, so a parked car does not jitter.")]
         public float minSpeed = 1.5f;
@@ -39,6 +50,18 @@ namespace VehicleSystem
 
         Rigidbody rb;
         VehicleController vehicle;
+        float driftTimer;
+
+        Vector3 Velocity
+        {
+#if UNITY_6000_0_OR_NEWER
+            get => rb.linearVelocity;
+            set => rb.linearVelocity = value;
+#else
+            get => rb.velocity;
+            set => rb.velocity = value;
+#endif
+        }
 
         void Awake()
         {
@@ -48,7 +71,15 @@ namespace VehicleSystem
 
         void FixedUpdate()
         {
-            if (lateralGrip <= 0f || !vehicle.IsGrounded) return;
+            if (!vehicle.IsGrounded) return;
+
+            ApplyLateralGrip();
+            if (limitDriftAngle) LimitDriftAngle();
+        }
+
+        void ApplyLateralGrip()
+        {
+            if (lateralGrip <= 0f) return;
 
             float speed = Mathf.Abs(vehicle.ForwardSpeed);
             if (speed <= minSpeed) return;
@@ -57,11 +88,7 @@ namespace VehicleSystem
             float drift = Mathf.Lerp(1f, handbrakeFactor, vehicle.HandbrakeAmount);
             float grip = scaleWithTireGrip && vehicle.Stats != null ? vehicle.Stats.Get(VehicleStat.TireGrip) : 1f;
 
-#if UNITY_6000_0_OR_NEWER
-            Vector3 velocity = rb.linearVelocity;
-#else
-            Vector3 velocity = rb.velocity;
-#endif
+            Vector3 velocity = Velocity;
             Vector3 right = transform.right;
             float sideways = Vector3.Dot(velocity, right);
 
@@ -69,6 +96,37 @@ namespace VehicleSystem
             accel = Mathf.Clamp(accel, -maxLateralAcceleration, maxLateralAcceleration);
 
             rb.AddForce(right * accel, ForceMode.Acceleration);
+        }
+
+        /// <summary>
+        /// While the handbrake is (or just was) held, turns the travel direction back toward the nose whenever it strays
+        /// further than "Max Drift Angle". The car still slides, but it can no longer rotate past the point where it
+        /// would travel backward.
+        /// </summary>
+        void LimitDriftAngle()
+        {
+            float dt = Time.fixedDeltaTime;
+            if (vehicle.HandbrakeAmount > 0.05f) driftTimer = driftTail;
+            else driftTimer -= dt;
+            if (driftTimer <= 0f) return;
+
+            // the player is deliberately reversing: leave the direction alone
+            if (vehicle.ThrottleInput < -0.01f) return;
+
+            Vector3 velocity = Velocity;
+            Vector3 flat = Vector3.ProjectOnPlane(velocity, Vector3.up);
+            if (flat.magnitude < minDriftSpeed) return;
+
+            Vector3 heading = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            if (heading.sqrMagnitude < 0.0001f) return;
+
+            // how far the travel direction has to turn to line up with the nose
+            float slip = Vector3.SignedAngle(flat, heading, Vector3.up);
+            float excess = Mathf.Abs(slip) - maxDriftAngle;
+            if (excess <= 0f) return;
+
+            float turn = Mathf.Min(excess, driftCorrection * dt) * Mathf.Sign(slip);
+            Velocity = Quaternion.AngleAxis(turn, Vector3.up) * flat + Vector3.up * velocity.y;
         }
     }
 }

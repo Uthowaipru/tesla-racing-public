@@ -106,6 +106,8 @@ namespace VehicleSystem
         public bool IsGrounded { get; private set; }
         /// <summary>0..1, how far the (eased) handbrake is applied. Drifting is detected with it.</summary>
         public float HandbrakeAmount => handbrakeAmount;
+        /// <summary>-1..1, what the driver asks for (negative = brake / reverse). Not the smoothed motor value.</summary>
+        public float ThrottleInput => throttleInput;
 
         Rigidbody rb;
         VehicleStats stats;

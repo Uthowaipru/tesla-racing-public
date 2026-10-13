@@ -7,8 +7,9 @@ namespace VehicleSystem
     /// <summary>
     /// Gets the vehicle out of trouble. Two SEPARATE paths:
     ///   1. Manual : RecoverManual() (LocalPlayerRig calls it for the R key, gamepad Y/North, and the mobile RESET button).
-    ///               Costs one repair charge and teleports the car back to a SAFE PLACE it drove through a few seconds
-    ///               ago: upright and standing on the ground (no lift, no hop, no move backward). Safe places are
+    ///               A repair kit. In a safe place it only HEALS (and is not used when health is full). When the car is
+    ///               stuck, tipped over or not in a safe place it also teleports back to a SAFE PLACE it drove through a few
+    ///               seconds ago: upright and on the ground (no lift, no hop, no move backward). Safe places are
     ///               remembered all the time while driving.
     ///   2. Auto   : - flipped / on its side for a while  -> RecoverAuto(): upright at the nearest clear spot, on the ground.
     ///               - stuck while the player is driving  -> "Reverse Out": the script drives the car backwards
@@ -83,6 +84,20 @@ namespace VehicleSystem
         [Tooltip("Failed tries are forgotten after this many seconds.")]
         public float attemptMemoryTime = 8f;
 
+        [Header("Repair kit: heal only, or teleport too?")]
+        [Tooltip("The kit only teleports when the vehicle is NOT in a safe place: tipped over, stuck, or somewhere it should not be. Otherwise it only heals.")]
+        [Range(-0.5f, 0.95f)] public float repairUprightDot = 0.6f;
+        [Tooltip("Pushing against something for this long (seconds) while trying to drive counts as stuck.")]
+        public float repairStuckTime = 0.6f;
+        [Tooltip("In the air for this long (seconds) counts as not safe (fell off the map).")]
+        public float unsafeAirTime = 1.5f;
+
+        /// <summary>
+        /// Optional: the road system sets this so a position can be declared unsafe (for example off the road). Return false
+        /// for unsafe. Leave null to ignore.
+        /// </summary>
+        public Func<Vector3, bool> isPositionSafe;
+
         [Header("Safe Places (manual recovery and the Last Safe Point stuck mode)")]
         [Tooltip("How often a safe place is remembered while driving normally (seconds).")]
         public float safePointInterval = 1f;
@@ -106,8 +121,11 @@ namespace VehicleSystem
 
         public event Action Recovered;
 
-        /// <summary>Fired after a successful MANUAL recovery (the place to restore health later).</summary>
-        public event Action ManualRecovered;
+        /// <summary>
+        /// Fired after a repair kit was used. The bool says whether the vehicle was also teleported (it was stuck or not
+        /// in a safe place) or only healed. VehicleHealth restores health on it.
+        /// </summary>
+        public event Action<bool> ManualRecovered;
 
         /// <summary>Manual resets still available this match.</summary>
         public int ManualResetsLeft { get; private set; }
@@ -134,6 +152,8 @@ namespace VehicleSystem
         VehicleController vehicle;
 
         float flippedTimer, stuckTimer, cooldownTimer, safeTimer, lastDriveSign;
+        float blockedTimer, airTimer;
+        VehicleHealth health;
         struct SafePlace { public Vector3 position; public Quaternion rotation; public float time; }
         readonly List<SafePlace> safePlaces = new List<SafePlace>();
 
@@ -190,6 +210,17 @@ namespace VehicleSystem
         /// </summary>
         public bool RecoverManual()
         {
+            bool safe = IsInSafePlace();
+            if (health == null) TryGetComponent(out health);
+            bool hurt = health != null && health.Health01 < 0.999f;
+
+            // already safe and nothing to heal: a kit would be wasted
+            if (safe && !hurt)
+            {
+                ManualResetDenied?.Invoke();
+                return false;
+            }
+
             if (limitManualResets)
             {
                 if (ManualResetsLeft <= 0)
@@ -200,8 +231,23 @@ namespace VehicleSystem
                 ManualResetsLeft--;
             }
 
-            TeleportToLastSafePoint();
-            ManualRecovered?.Invoke();
+            bool teleport = !safe;
+            if (teleport) TeleportToLastSafePoint();
+            ManualRecovered?.Invoke(teleport);
+            return true;
+        }
+
+        /// <summary>
+        /// True when the vehicle is fine where it is: upright, not stuck against something, not stranded in the air,
+        /// and (if the road system says so) on a valid position. A repair kit then only heals.
+        /// </summary>
+        public bool IsInSafePlace()
+        {
+            if (reversing) return false;                                                   // being driven out of a stuck spot
+            if (Vector3.Dot(transform.up, Vector3.up) < repairUprightDot) return false;   // tipped over
+            if (blockedTimer >= repairStuckTime) return false;                             // stuck against something
+            if (airTimer >= unsafeAirTime) return false;                                   // stranded in the air
+            if (isPositionSafe != null && !isPositionSafe(transform.position)) return false;
             return true;
         }
 
@@ -299,6 +345,10 @@ namespace VehicleSystem
         void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
+
+            // for the repair kit: is the vehicle blocked or in the air? (counted all the time, also during escapes)
+            blockedTimer = Mathf.Abs(DriveInput) > 0.5f && Velocity.magnitude < stuckSpeed ? blockedTimer + dt : 0f;
+            airTimer = AnyWheelGrounded() ? 0f : airTimer + dt;
 
             if (reversing)
             {

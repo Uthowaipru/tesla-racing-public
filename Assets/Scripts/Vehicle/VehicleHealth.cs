@@ -159,7 +159,7 @@ namespace VehicleSystem
             HealthChanged?.Invoke(Health, maxHealth);
         }
 
-        void OnManualRecovered() => Heal(maxHealth * repairHealFraction);
+        void OnManualRecovered(bool teleported) => Heal(maxHealth * repairHealFraction);
 
         // ------------------------------------------------------------------ destroyed and respawn
 

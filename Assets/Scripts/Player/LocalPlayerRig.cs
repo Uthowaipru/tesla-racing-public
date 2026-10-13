@@ -36,6 +36,8 @@ namespace VehicleSystem
         public HealthBar healthBar;
         public RespawnCountdown respawnCountdown;
         public PickupHud pickupHud;
+        [Tooltip("Found in the scene if empty. It builds the road around this player's vehicle.")]
+        public RoadGenerator road;
 
         [Header("Setup")]
         [Tooltip("ON (single player / existing scenes): empty parts above are searched for in the scene once, at startup. " +
@@ -82,6 +84,7 @@ namespace VehicleSystem
                 if (healthBar == null) healthBar = FindFirstObjectByType<HealthBar>();
                 if (respawnCountdown == null) respawnCountdown = FindFirstObjectByType<RespawnCountdown>();
                 if (pickupHud == null) pickupHud = FindFirstObjectByType<PickupHud>();
+                if (road == null) road = FindFirstObjectByType<RoadGenerator>();
             }
 
             if (input == null) input = gameObject.AddComponent<LocalPlayerInput>();
@@ -137,6 +140,12 @@ namespace VehicleSystem
             car.TryGetComponent(out recovery);
             if (recovery != null) recovery.cameraRig = cameraRig;
 
+            if (road != null)
+            {
+                road.SetTarget(car.transform);
+                if (recovery != null) recovery.isPositionSafe = road.IsOnRoad; // off the road = not a safe place
+            }
+
             cameraRig.SetTarget(car);
             if (resetCounter != null) resetCounter.SetRecovery(recovery);
             if (speedometer != null) speedometer.SetVehicle(car);
@@ -165,6 +174,7 @@ namespace VehicleSystem
             }
             if (driver != null && ReferenceEquals(driver.Source, input)) driver.SetSource(null);
             if (recovery != null && recovery.cameraRig == cameraRig) recovery.cameraRig = null;
+            if (recovery != null && road != null) recovery.isPositionSafe = null;
             if (resetCounter != null) resetCounter.SetRecovery(null);
             if (speedometer != null) speedometer.SetVehicle(null);
             if (healthBar != null) healthBar.SetVehicle(null);
