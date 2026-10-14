@@ -27,6 +27,14 @@ namespace VehicleSystem
         public int laneCount = 3;
         public float laneWidth = 3.2f;
 
+        [Header("Two-way road (leave Oncoming Lane Count at 0 for a one-way piece)")]
+        [Tooltip("Lanes of the OPPOSITE road, to the right of the median. 0 = a one-way piece.")]
+        public int oncomingLaneCount = 0;
+        [Tooltip("Width of the median between the two roads (meters). Only used when there are oncoming lanes.")]
+        public float medianWidth = 2.4f;
+        [Tooltip("This piece has an OPENING in the median, so players can cross to the other road. The generator places these at the spacing set on the RoadGenerator; they are never picked as normal pieces.")]
+        public bool isCrossover;
+
         [Header("Selection")]
         [Tooltip("How likely this piece is chosen (0 = never).")]
         [Min(0f)] public float weight = 1f;
@@ -70,6 +78,9 @@ namespace VehicleSystem
             for (int i = spawnedRoot.childCount - 1; i >= 0; i--)
                 Destroy(spawnedRoot.GetChild(i).gameObject);
         }
+
+        /// <summary>Width of the whole road of this piece: forward lanes + median + oncoming lanes.</summary>
+        public float TotalWidth => laneCount * laneWidth + (oncomingLaneCount > 0 ? medianWidth + oncomingLaneCount * laneWidth : 0f);
 
         /// <summary>The centre line in this piece's own space.</summary>
         public void GetLocalPoints(List<Vector3> into)

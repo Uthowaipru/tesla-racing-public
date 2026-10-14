@@ -7,6 +7,8 @@ namespace VehicleSystem
     /// One NPC vehicle (car, CNG, bus, truck). It follows a lane of the road at a fixed speed. Everything in a lane drives
     /// at the same speed, so NPCs never run into each other. All traffic goes the same way as the player.
     ///
+    /// On a two-way road, oncoming vehicles drive the other way (toward the start of the road).
+    ///
     /// It is a normal dynamic Rigidbody that steers itself along the road, so the player really pushes it. When a player's
     /// vehicle hits it hard enough it is KNOCKED: it stops driving, tumbles for a few seconds and then vanishes.
     ///
@@ -51,6 +53,8 @@ namespace VehicleSystem
         public event Action<TrafficVehicle> Knocked;
 
         public State CurrentState { get; private set; }
+        /// <summary>+1 drives the way the player drives, -1 drives toward the player (the oncoming road).</summary>
+        public int Direction { get; private set; } = 1;
         /// <summary>Distance along the road.</summary>
         public float S { get; private set; }
         public bool Expired { get; private set; }
@@ -78,9 +82,10 @@ namespace VehicleSystem
         }
 
         /// <summary>Puts the vehicle on the road at distance s in a lane and starts it driving.</summary>
-        public void Begin(RoadPath roadPath, float s, float offset, float laneSpeed)
+        public void Begin(RoadPath roadPath, float s, float offset, float laneSpeed, int direction = 1)
         {
             path = roadPath;
+            Direction = direction >= 0 ? 1 : -1;
             S = s;
             laneOffset = offset;
             speed = laneSpeed;
@@ -91,7 +96,7 @@ namespace VehicleSystem
             knockTimer = 0f;
             transform.localScale = baseScale;
 
-            Vector3 tangent = path.Tangent(s);
+            Vector3 tangent = path.Tangent(s) * Direction;
             Vector3 position = path.Evaluate(s) + path.Right(s) * offset + Vector3.up * groundOffset;
             Quaternion rotation = Quaternion.LookRotation(tangent, Vector3.up);
 
@@ -136,11 +141,11 @@ namespace VehicleSystem
 
             // where am I on the road, and where do I aim?
             S = path.ProjectS(rb.position, S);
-            float aheadS = Mathf.Min(S + lookAhead, path.EndS);
+            float aheadS = Direction > 0 ? Mathf.Min(S + lookAhead, path.EndS) : Mathf.Max(S - lookAhead, path.StartS);
             Vector3 target = path.Evaluate(aheadS) + path.Right(aheadS) * laneOffset;
 
             Vector3 toTarget = Vector3.ProjectOnPlane(target - rb.position, Vector3.up);
-            Vector3 direction = toTarget.sqrMagnitude > 0.01f ? toTarget.normalized : path.Tangent(S);
+            Vector3 direction = toTarget.sqrMagnitude > 0.01f ? toTarget.normalized : path.Tangent(S) * Direction;
 
             rb.MoveRotation(Quaternion.RotateTowards(rb.rotation, Quaternion.LookRotation(direction, Vector3.up), turnRate * dt));
 

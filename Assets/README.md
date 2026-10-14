@@ -13,12 +13,12 @@ Scripts/
   Input/     LocalPlayerInput (was VehicleInput), InputModeManager, MobileControls, TouchHoldButton
   Camera/    VehicleCameraRig
   Player/    LocalPlayerRig (new), PlayerProfile (new: remembers the chosen vehicle)
-  UI/        PauseMenu, ControlsOverlay, ResetCounterUI, Speedometer, HealthBar, RespawnCountdown, VehicleNameTag, PickupHud (new)
+  UI/        PauseMenu, ControlsOverlay, ResetCounterUI, Speedometer, HealthBar, RespawnCountdown, VehicleNameTag, PickupHud, WrongWayBanner (new)
   Menu/      VehicleSelectMenu, VehiclePreviewStage, VehiclePreviewDrag (new: vehicle selector with 3D preview)
   Data/      VehicleDefinition, VehicleCatalog, StatModifierDef, MapDefinition, VehicleEffectsDefaults (new ScriptableObjects)
   Race/      RaceConfig, PlayerSlot, VehicleSpawner
   Pickups/   Pickup (battery, repair kit)
-  Road/      SeededRandom, RoadChunk, RoadPath, RoadGenerator, TrafficVehicle, TrafficManager, PickupPlacer (new)
+  Road/      SeededRandom, RoadChunk, RoadPath, RoadGenerator, TrafficVehicle, TrafficManager, PickupPlacer, WrongWayTracker (new)
   Editor/    ControlsOverlayBuilder, MobileControlsBuilder, VehicleSelectMenuBuilder, SpeedometerBuilder, VehicleStatsEditor
 ```
 
@@ -94,6 +94,22 @@ Scripts/
   `Assets/VehicleSystem/Road` (Tools > Vehicle > Create Road Pieces recreates them). `VehicleSpawner` starts vehicles on the road
   (`Spawn On Road Start`); `LocalPlayerRig` makes the road follow the local vehicle, and "off the road" counts as not safe for the
   repair kit (`VehicleRecovery.isPositionSafe`).
+
+## Two-way road (optional, per scene)
+
+Tick **Two Way Road** on the RoadGenerator in any scene to switch it on; leave it off for the one-way road. Seeded content of the normal road is
+unchanged by this switch (oncoming traffic and pickups use their own random channels).
+
+- **Pieces:** `Two Way Chunk Prefabs` (forward lanes + median + `Oncoming Lane Count`; crossover pieces have `Is Crossover` ticked and an
+  opening in the median). Crossovers appear from `First Crossover Index`, then every `Min`..`Max Pieces Between Crossovers` (from the seed).
+  Default placeholder pieces: 2 lanes each way, 2.4 m median.
+- **Oncoming traffic** (`TrafficManager`): own density, lane speeds, start-clear distance and optional vehicle list. Vehicles drive toward the
+  player on the oncoming lanes (slow lane on the outer edge). `PickupPlacer` has extra battery / repair kit chances on the oncoming side.
+- **WrongWayTracker** (on the Road System): which side the local player is on (`Side`, `IsWrongWay`), `ScoreMultiplier` (distance points while
+  wrong way), crossing bonus events (`CrossedToOncoming(bonus)`, `CrossedToForward(bonus)`), cooldown, hysteresis, teleport handling.
+  It holds no score: the match score reads it.
+- **WrongWayBanner** HUD: "WRONG WAY x2" and "+50 CROSSING BONUS" (created by LocalPlayerRig when a tracker exists).
+- Head-on damage is unchanged: `VehicleHealth > Head On Kills / Head On Kill Tier` decide how deadly oncoming traffic is.
 
 ## Pickups and boost
 

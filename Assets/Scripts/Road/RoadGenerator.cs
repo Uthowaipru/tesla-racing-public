@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace VehicleSystem
 {
+    /// <summary>Which road a position is on: the normal one (the way the player drives) or the oncoming one (wrong way).</summary>
+    public enum RoadSide { Forward, Oncoming }
+
     /// <summary>
     /// Builds an endless road from a few prefab pieces (RoadChunk), driven by a SEED. The same seed gives the same road on
     /// every device, so in a room every player uses the host's seed and drives the same road. Offline levels use a fixed
@@ -13,6 +16,10 @@ namespace VehicleSystem
     ///   - Only the pieces around the local vehicle exist: a few ahead, a few behind. Pieces are recycled, not destroyed.
     ///   - Every player's phone builds its own road around its own vehicle, so players far apart do not affect each other.
     ///   - TrafficManager and PickupPlacer fill each new piece (also from the seed).
+    ///
+    /// TWO-WAY ROAD: tick "Two Way Road" (in each scene as you like) and the road is built from the two-way pieces instead:
+    /// forward lanes, a median, and oncoming lanes. Every few pieces comes a crossover piece with an opening in the median.
+    /// Players start on the forward road; driving on the oncoming road is "wrong way" (see WrongWayTracker).
     ///
     /// Set up with GameObject > Vehicle > Road System. The vehicle to follow is given by LocalPlayerRig.
     /// </summary>
@@ -26,8 +33,21 @@ namespace VehicleSystem
         [Tooltip("Start building when the scene starts. Turn off to start it yourself with Begin(seed) (for example when the host's seed arrives).")]
         public bool autoStart = true;
 
-        [Header("Road pieces (the first one gives the lane layout)")]
+        [Header("One-way road pieces (the first one gives the lane layout)")]
         public RoadChunk[] chunkPrefabs;
+
+        [Header("Two-way road: turn it on or off in each scene")]
+        [Tooltip("ON: the road is built from the two-way pieces below, with oncoming lanes and crossovers. OFF: the one-way pieces above.")]
+        public bool twoWayRoad = false;
+        [Tooltip("Pieces with a median and oncoming lanes, plus crossover pieces (RoadChunk > Is Crossover). The first one gives the lane layout.")]
+        public RoadChunk[] twoWayChunkPrefabs;
+        [Tooltip("The first crossover is at this piece number.")]
+        public int firstCrossoverIndex = 3;
+        [Tooltip("After a crossover the next one comes after this many pieces (a number between min and max, from the seed).")]
+        public int minPiecesBetweenCrossovers = 4;
+        public int maxPiecesBetweenCrossovers = 8;
+
+        [Header("Building around the vehicle")]
         [Tooltip("How many pieces exist ahead of the vehicle.")]
         public int chunksAhead = 4;
         [Tooltip("How many pieces are kept behind the vehicle.")]
@@ -52,9 +72,29 @@ namespace VehicleSystem
         public bool IsStarted { get; private set; }
         /// <summary>How far along the road the followed vehicle is (meters).</summary>
         public float PlayerS { get; private set; }
-        public int LaneCount => chunkPrefabs != null && chunkPrefabs.Length > 0 && chunkPrefabs[0] != null ? chunkPrefabs[0].laneCount : 3;
-        public float LaneWidth => chunkPrefabs != null && chunkPrefabs.Length > 0 && chunkPrefabs[0] != null ? chunkPrefabs[0].laneWidth : 3.2f;
         public IReadOnlyList<RoadChunk> ActiveChunks => active;
+
+        /// <summary>True when the two-way pieces are in use (oncoming lanes exist).</summary>
+        public bool IsTwoWay
+        {
+            get
+            {
+                RoadChunk layout = Layout;
+                return twoWayRoad && ReferenceEquals(Prefabs, twoWayChunkPrefabs) && layout != null && layout.oncomingLaneCount > 0;
+            }
+        }
+
+        // ---- lane layout (read from the first piece in the list that is in use)
+        RoadChunk[] Prefabs => activePrefabs ?? ResolvePrefabs();
+        RoadChunk Layout => Prefabs != null && Prefabs.Length > 0 ? Prefabs[0] : null;
+
+        /// <summary>Lanes of the normal road (the way the player drives), counted from the left (0).</summary>
+        public int LaneCount => Layout != null ? Layout.laneCount : 3;
+        public int ForwardLaneCount => LaneCount;
+        public int OncomingLaneCount => IsTwoWay ? Layout.oncomingLaneCount : 0;
+        public float LaneWidth => Layout != null ? Layout.laneWidth : 3.2f;
+        public float MedianWidth => OncomingLaneCount > 0 ? Layout.medianWidth : 0f;
+        public float TotalWidth => ForwardLaneCount * LaneWidth + (OncomingLaneCount > 0 ? MedianWidth + OncomingLaneCount * LaneWidth : 0f);
 
         /// <summary>A new piece of road exists (traffic and pickups are placed on it).</summary>
         public event Action<RoadChunk> ChunkSpawned;
@@ -69,7 +109,14 @@ namespace VehicleSystem
         readonly List<RoadChunk> active = new List<RoadChunk>();
         readonly Dictionary<RoadChunk, Stack<RoadChunk>> pools = new Dictionary<RoadChunk, Stack<RoadChunk>>();
         readonly List<Vector3> scratch = new List<Vector3>();
-        int nextIndex;
+        RoadChunk[] activePrefabs;
+        int nextIndex, nextCrossoverIndex, crossoverCount;
+
+        RoadChunk[] ResolvePrefabs()
+        {
+            if (twoWayRoad && twoWayChunkPrefabs != null && twoWayChunkPrefabs.Length > 0) return twoWayChunkPrefabs;
+            return chunkPrefabs;
+        }
 
         void Start()
         {
@@ -83,7 +130,8 @@ namespace VehicleSystem
         /// <summary>Starts (or restarts) the road with a seed. Everything on the old road is removed.</summary>
         public void Begin(int newSeed)
         {
-            if (chunkPrefabs == null || chunkPrefabs.Length == 0)
+            RoadChunk[] prefabs = ResolvePrefabs();
+            if (prefabs == null || prefabs.Length == 0)
             {
                 Debug.LogError("RoadGenerator: no road pieces assigned. Use GameObject > Vehicle > Road System, or Tools > Vehicle > Create Road Pieces.", this);
                 return;
@@ -94,6 +142,7 @@ namespace VehicleSystem
             active.Clear();
             Path.Clear();
 
+            activePrefabs = prefabs;
             Seed = newSeed;
             seed = newSeed;
             poses.Clear();
@@ -102,6 +151,8 @@ namespace VehicleSystem
             poses.Add(new Pose(transform.position, transform.rotation));
             headings.Add(0f);
             nextIndex = 0;
+            nextCrossoverIndex = firstCrossoverIndex;
+            crossoverCount = 0;
             PlayerS = 0f;
 
             IsStarted = true;
@@ -151,7 +202,7 @@ namespace VehicleSystem
                 int pi = ChoosePrefab(k, headings[k]);
                 prefabOfChunk.Add(pi);
 
-                RoadChunk prefab = chunkPrefabs[pi];
+                RoadChunk prefab = activePrefabs[pi];
                 prefab.GetExitLocal(out Vector3 exitPosition, out Quaternion exitRotation);
 
                 Pose start = poses[k];
@@ -160,21 +211,37 @@ namespace VehicleSystem
             }
         }
 
-        /// <summary>Picks piece k from the seed: weighted, only pieces allowed at this number, and never bending the road too far.</summary>
+        /// <summary>
+        /// Picks piece k from the seed. At the scheduled numbers of a two-way road it is a crossover; otherwise a weighted pick of
+        /// the pieces allowed at this number, never bending the road too far.
+        /// </summary>
         int ChoosePrefab(int index, float heading)
         {
+            RoadChunk[] prefabs = activePrefabs;
+
+            if (IsTwoWay && index == nextCrossoverIndex)
+            {
+                int crossover = ChooseCrossover(index);
+                if (crossover >= 0)
+                {
+                    var spacing = SeededRandom.For(Seed, crossoverCount++, 5);
+                    nextCrossoverIndex += Mathf.Max(1, spacing.Range(minPiecesBetweenCrossovers, maxPiecesBetweenCrossovers + 1));
+                    return crossover;
+                }
+            }
+
             var rng = SeededRandom.For(Seed, index, 1);
             float roll = rng.NextFloat();
 
             float total = 0f;
             int bestFallback = 0;
             float bestFallbackHeading = float.MaxValue;
-            var weights = new float[chunkPrefabs.Length];
+            var weights = new float[prefabs.Length];
 
-            for (int i = 0; i < chunkPrefabs.Length; i++)
+            for (int i = 0; i < prefabs.Length; i++)
             {
-                RoadChunk c = chunkPrefabs[i];
-                if (c == null || c.weight <= 0f) continue;
+                RoadChunk c = prefabs[i];
+                if (c == null || c.weight <= 0f || c.isCrossover) continue;
                 if (index < c.firstIndex || (c.lastIndex >= 0 && index > c.lastIndex)) continue;
 
                 float after = Mathf.Abs(Mathf.DeltaAngle(0f, heading + c.TurnAngle));
@@ -197,11 +264,32 @@ namespace VehicleSystem
             return bestFallback;
         }
 
+        int ChooseCrossover(int index)
+        {
+            RoadChunk[] prefabs = activePrefabs;
+            var rng = SeededRandom.For(Seed, index, 1);
+            float roll = rng.NextFloat();
+
+            float total = 0f;
+            for (int i = 0; i < prefabs.Length; i++)
+                if (prefabs[i] != null && prefabs[i].isCrossover && prefabs[i].weight > 0f) total += prefabs[i].weight;
+            if (total <= 0f) return -1;
+
+            float pick = roll * total;
+            for (int i = 0; i < prefabs.Length; i++)
+            {
+                if (prefabs[i] == null || !prefabs[i].isCrossover || prefabs[i].weight <= 0f) continue;
+                pick -= prefabs[i].weight;
+                if (pick <= 0f) return i;
+            }
+            return -1;
+        }
+
         void Spawn(int index)
         {
             EnsureLayout(index);
 
-            RoadChunk prefab = chunkPrefabs[prefabOfChunk[index]];
+            RoadChunk prefab = activePrefabs[prefabOfChunk[index]];
             RoadChunk chunk = Acquire(prefab);
 
             Pose pose = poses[index];
@@ -245,15 +333,32 @@ namespace VehicleSystem
             stack.Push(chunk);
         }
 
-        // ------------------------------------------------------------------ helpers for other systems
+        // ------------------------------------------------------------------ lanes and sides (for other systems)
 
-        /// <summary>Distance across the road from the centre line to the middle of a lane (negative = left).</summary>
-        public float LaneOffset(int lane) => (lane - (LaneCount - 1) * 0.5f) * LaneWidth;
+        /// <summary>
+        /// Distance across the road from the centre line to the middle of a FORWARD lane (negative = left). Lane 0 is the
+        /// leftmost, the slow lane. With oncoming lanes the centre line is the middle of the median.
+        /// </summary>
+        public float LaneOffset(int lane) => -TotalWidth * 0.5f + (lane + 0.5f) * LaneWidth;
+
+        /// <summary>Same for an ONCOMING lane: lane 0 is the one next to the median, the last one is at the outer edge.</summary>
+        public float OncomingLaneOffset(int lane) =>
+            -TotalWidth * 0.5f + ForwardLaneCount * LaneWidth + MedianWidth + (lane + 0.5f) * LaneWidth;
+
+        /// <summary>
+        /// How far a position is from the centre line across the road (positive = right, the oncoming side). Also gives how
+        /// far along the road it is; pass the previous s as the hint.
+        /// </summary>
+        public float LateralOffset(Vector3 position, float sHint, out float s)
+        {
+            s = Path.ProjectS(position, sHint);
+            return Vector3.Dot(position - Path.Evaluate(s), Path.Right(s));
+        }
 
         /// <summary>Where a vehicle starts: slot 0 in the first lane, the next slots beside it, then the next row.</summary>
         public Pose GetStartPose(int slot)
         {
-            int lanes = Mathf.Max(1, LaneCount);
+            int lanes = Mathf.Max(1, ForwardLaneCount);
             int lane = slot % lanes;
             int row = slot / lanes;
 
@@ -270,13 +375,8 @@ namespace VehicleSystem
         {
             if (!IsStarted || Path.Count < 2) return true;
 
-            float s = Path.ProjectS(position, -1f);
-            Vector3 centre = Path.Evaluate(s);
-            Vector3 offset = position - centre;
-            offset.y = 0f;
-
-            float halfWidth = LaneCount * LaneWidth * 0.5f + 2f;
-            return offset.magnitude <= halfWidth;
+            float lateral = LateralOffset(position, -1f, out _);
+            return Mathf.Abs(lateral) <= TotalWidth * 0.5f + 2f;
         }
     }
 }

@@ -29,6 +29,19 @@ namespace VehicleSystem
         public float fastestLaneSpeed = 9f;
         public float speedMultiplier = 1f;
 
+        [Header("Oncoming traffic (only on a two-way road)")]
+        public bool spawnOncoming = true;
+        public int oncomingMinPerChunk = 2;
+        public int oncomingMaxPerChunk = 4;
+        [Range(0f, 3f)] public float oncomingDensityMultiplier = 1f;
+        [Tooltip("Speeds of the oncoming lanes (m/s), from the slowest (outer edge) to the fastest (next to the median).")]
+        public float oncomingSlowestLaneSpeed = 5f;
+        public float oncomingFastestLaneSpeed = 10f;
+        [Tooltip("No oncoming traffic closer than this to the start of the road (meters), so players start safely.")]
+        public float oncomingStartClearDistance = 90f;
+        [Tooltip("Vehicles for the oncoming road. Empty = the same list as the normal road.")]
+        public TrafficVehicle[] oncomingVehiclePrefabs;
+
         [Header("Placement")]
         [Tooltip("No traffic closer than this to the start of a piece (meters), so pieces never crowd at their joints.")]
         public float chunkMargin = 10f;
@@ -47,6 +60,7 @@ namespace VehicleSystem
         readonly Dictionary<TrafficVehicle, Stack<TrafficVehicle>> pools = new Dictionary<TrafficVehicle, Stack<TrafficVehicle>>();
         readonly List<Placed> placed = new List<Placed>();
         float[] laneSpeeds = new float[0];
+        float[] oncomingLaneSpeeds = new float[0];
         float cleanTimer;
 
         void OnEnable()
@@ -88,6 +102,15 @@ namespace VehicleSystem
                 float t = lanes > 1 ? i / (float)(lanes - 1) : 0f;
                 laneSpeeds[i] = Mathf.Lerp(slowestLaneSpeed, fastestLaneSpeed, t) + (rng.NextFloat() - 0.5f) * 0.6f;
             }
+
+            int oncoming = road.OncomingLaneCount;
+            oncomingLaneSpeeds = new float[oncoming];
+            for (int i = 0; i < oncoming; i++)
+            {
+                var rng = SeededRandom.For(road.Seed, i, 7);
+                float t = oncoming > 1 ? i / (float)(oncoming - 1) : 0f;
+                oncomingLaneSpeeds[i] = Mathf.Lerp(oncomingSlowestLaneSpeed, oncomingFastestLaneSpeed, t) + (rng.NextFloat() - 0.5f) * 0.6f;
+            }
         }
 
         // ------------------------------------------------------------------ filling a piece of road
@@ -109,32 +132,67 @@ namespace VehicleSystem
                 float vehicleRoll = rng.NextFloat();
                 float s = chunk.StartS + chunkMargin + rng.NextFloat() * usable;
 
-                TrafficVehicle prefab = Choose(vehicleRoll, lane);
+                TrafficVehicle prefab = Choose(vehiclePrefabs, vehicleRoll, lane);
                 if (prefab == null || s < startClearDistance) continue;
                 if (!HasRoom(lane, s, prefab.length)) continue;
 
                 placed.Add(new Placed { lane = lane, s = s, length = prefab.length });
 
                 TrafficVehicle vehicle = Acquire(prefab);
-                vehicle.Begin(road.Path, s, road.LaneOffset(lane), laneSpeeds[lane] * speedMultiplier);
+                vehicle.Begin(road.Path, s, road.LaneOffset(lane), laneSpeeds[lane] * speedMultiplier, 1);
+                active.Add(vehicle);
+            }
+
+            if (spawnOncoming && road.OncomingLaneCount > 0) SpawnOncoming(chunk);
+        }
+
+        /// <summary>Traffic on the oncoming road: it drives toward the player. Lane numbers are in the driver's terms (0 = slowest, the outer edge).</summary>
+        void SpawnOncoming(RoadChunk chunk)
+        {
+            TrafficVehicle[] prefabs = oncomingVehiclePrefabs != null && oncomingVehiclePrefabs.Length > 0 ? oncomingVehiclePrefabs : vehiclePrefabs;
+            int lanes = road.OncomingLaneCount;
+            if (prefabs == null || prefabs.Length == 0 || oncomingLaneSpeeds.Length < lanes) return;
+
+            var rng = SeededRandom.For(road.Seed, chunk.Index, 6);
+            int count = Mathf.RoundToInt(rng.Range(oncomingMinPerChunk, oncomingMaxPerChunk + 1) * oncomingDensityMultiplier);
+            float usable = Mathf.Max(1f, chunk.Length - 2f * chunkMargin);
+
+            placed.Clear();
+            for (int i = 0; i < count; i++)
+            {
+                int drivingLane = rng.Range(0, lanes);
+                float vehicleRoll = rng.NextFloat();
+                float s = chunk.StartS + chunkMargin + rng.NextFloat() * usable;
+
+                TrafficVehicle prefab = Choose(prefabs, vehicleRoll, drivingLane);
+                if (prefab == null || s < oncomingStartClearDistance) continue;
+                if (!HasRoom(drivingLane, s, prefab.length)) continue;
+
+                placed.Add(new Placed { lane = drivingLane, s = s, length = prefab.length });
+
+                // the slow lane of the oncoming road is the outer edge, the fast lane is next to the median
+                int physicalLane = lanes - 1 - drivingLane;
+
+                TrafficVehicle vehicle = Acquire(prefab);
+                vehicle.Begin(road.Path, s, road.OncomingLaneOffset(physicalLane), oncomingLaneSpeeds[drivingLane] * speedMultiplier, -1);
                 active.Add(vehicle);
             }
         }
 
-        TrafficVehicle Choose(float roll, int lane)
+        static TrafficVehicle Choose(TrafficVehicle[] prefabs, float roll, int lane)
         {
             float total = 0f;
-            for (int i = 0; i < vehiclePrefabs.Length; i++)
-                if (Allowed(vehiclePrefabs[i], lane)) total += vehiclePrefabs[i].weight;
+            for (int i = 0; i < prefabs.Length; i++)
+                if (Allowed(prefabs[i], lane)) total += prefabs[i].weight;
 
             if (total <= 0f) return null;
 
             float pick = roll * total;
-            for (int i = 0; i < vehiclePrefabs.Length; i++)
+            for (int i = 0; i < prefabs.Length; i++)
             {
-                if (!Allowed(vehiclePrefabs[i], lane)) continue;
-                pick -= vehiclePrefabs[i].weight;
-                if (pick <= 0f) return vehiclePrefabs[i];
+                if (!Allowed(prefabs[i], lane)) continue;
+                pick -= prefabs[i].weight;
+                if (pick <= 0f) return prefabs[i];
             }
             return null;
         }
@@ -186,7 +244,8 @@ namespace VehicleSystem
             for (int i = active.Count - 1; i >= 0; i--)
             {
                 TrafficVehicle v = active[i];
-                if (v.Expired || v.S < behindLimit) Release(v);
+                bool ranOutOfRoad = v.Direction < 0 && v.S <= road.Path.StartS + 2f; // oncoming vehicle reached the end of the built road
+                if (v.Expired || v.S < behindLimit || ranOutOfRoad) Release(v);
             }
         }
     }

@@ -38,6 +38,9 @@ namespace VehicleSystem
         public PickupHud pickupHud;
         [Tooltip("Found in the scene if empty. It builds the road around this player's vehicle.")]
         public RoadGenerator road;
+        [Tooltip("Optional. On a two-way road it tells the banner when the player drives wrong way.")]
+        public WrongWayTracker wrongWayTracker;
+        public WrongWayBanner wrongWayBanner;
 
         [Header("Setup")]
         [Tooltip("ON (single player / existing scenes): empty parts above are searched for in the scene once, at startup. " +
@@ -51,6 +54,8 @@ namespace VehicleSystem
         public bool createHealthBar = true;
         public bool createRespawnCountdown = true;
         public bool createPickupHud = true;
+        [Tooltip("Create the wrong-way banner when the scene has a WrongWayTracker.")]
+        public bool createWrongWayBanner = true;
 
         [Header("Vehicle")]
         [Tooltip("Attached on Start. Leave empty to attach nothing (a spawner calls Attach later).")]
@@ -85,6 +90,8 @@ namespace VehicleSystem
                 if (respawnCountdown == null) respawnCountdown = FindFirstObjectByType<RespawnCountdown>();
                 if (pickupHud == null) pickupHud = FindFirstObjectByType<PickupHud>();
                 if (road == null) road = FindFirstObjectByType<RoadGenerator>();
+                if (wrongWayTracker == null) wrongWayTracker = FindFirstObjectByType<WrongWayTracker>();
+                if (wrongWayBanner == null) wrongWayBanner = FindFirstObjectByType<WrongWayBanner>();
             }
 
             if (input == null) input = gameObject.AddComponent<LocalPlayerInput>();
@@ -104,6 +111,9 @@ namespace VehicleSystem
                 respawnCountdown = new GameObject("Respawn Countdown").AddComponent<RespawnCountdown>();
             if (createPickupHud && pickupHud == null)
                 pickupHud = new GameObject("Pickup HUD").AddComponent<PickupHud>();
+            if (createWrongWayBanner && wrongWayBanner == null && wrongWayTracker != null)
+                wrongWayBanner = new GameObject("Wrong Way Banner").AddComponent<WrongWayBanner>();
+            if (wrongWayBanner != null) wrongWayBanner.SetTracker(wrongWayTracker);
 
             // hand the parts to each other, so none of them has to search
             if (input.mobile == null) input.mobile = mobile;
