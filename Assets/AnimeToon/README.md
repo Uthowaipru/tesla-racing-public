@@ -18,12 +18,17 @@ AnimeToon/
     Environment/AnimeGlass.shader           Anime/Glass
     Environment/AnimeWater.shader           Anime/Water
     Sky/AnimeSky.shader                     Anime/Sky
+    VFX/AnimeParticleToon.shader            Anime/ParticleToon (cel puffs, sparks, bursts)
+    VFX/AnimeScreenFX.shader                Anime/ScreenFX (speed lines + impact flash)
   Runtime/
+    AnimeSpeedFx.cs                         camera FX: speed lines, FOV kick, streaks, flash, shake
     AnimeStylePreset.cs                     one mood (Day / Dusk / Night)
     AnimeStyleController.cs                 blends presets, drives sun/ambient/fog + shader globals
   Editor/
     AnimeSmoothNormalBaker.cs               bakes outline normals for models named *_anime
     AnimeStylePresetCreator.cs              Tools > Anime Toon > Create Default Style Presets
+    AnimeVfxFactory.cs                      Tools > Anime Toon > Create VFX Pack
+  VFX/Textures/                             AnimeVfx_*.png masks used by the VFX pack (keep this folder)
 ```
 
 ## Quick start
@@ -40,6 +45,9 @@ AnimeToon/
 - **Post processing:** Tools > Anime Toon > Create Anime Volume Profile (bloom, neutral tonemapping,
   saturation/contrast, split toning, vignette; assigned to the controller, which then blends it per preset).
   Turn on Post Processing on the camera. Disable any other Volume that also overrides Bloom/Tonemapping.
+- **VFX:** Tools > Anime Toon > Create VFX Pack builds the materials and prefabs (AnimeTrail, AnimeHitSparks,
+  AnimeHitDust, AnimeLowHealthSmoke, AnimeExplosion, AnimeImpactBurst, AnimeShockRing, AnimeSpeedStreaks).
+  Add `AnimeSpeedFx` to the gameplay camera and call SetSpeed01 / SetBoosting / Impact from your game.
 - **Mood:** add an empty GameObject with `AnimeStyleController`, assign your Directional Light,
   run Tools > Anime Toon > Create Default Style Presets, then scrub Time Of Day.
   If you made presets with an older version, run Tools > Anime Toon > Reset Default Style Presets (Overwrite)

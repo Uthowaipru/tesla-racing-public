@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e5bced7e6ca07043ab9ce23f9cb646e, type: 3}
+  m_Name: AnimeDriftEffectsDefaults
+  m_EditorClassIdentifier: Assembly-CSharp::AnimeToon.Integration.AnimeDriftEffectsDefaults
+  smoke: {fileID: 2484850962738088494, guid: 1a423fdf65723e341bcad6c64c331bba, type: 3}
+  sparks: {fileID: 7627675863892462746, guid: c3560f17342d81f489d692523412fc6b, type: 3}
+  skid: {fileID: 2100000, guid: 9689137bb0ac90d409e3f4b5afede711, type: 2}

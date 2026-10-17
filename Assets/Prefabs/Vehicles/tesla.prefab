@@ -11963,7 +11963,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1802335779661793571
 Transform:
   m_ObjectHideFlags: 0
@@ -12003,9 +12003,10 @@ GameObject:
   - component: {fileID: 4648478359113922976}
   - component: {fileID: 1180370504201557282}
   - component: {fileID: -854223064781529852}
+  - component: {fileID: 5943423390878465715}
   m_Layer: 0
   m_Name: tesla
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -12371,11 +12372,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1eaf240b280627488c13c1ab987f611, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VehicleSystem.VehicleEffects
-  trail: {fileID: 4196929381993492377}
-  hitSparks: {fileID: 5242491905211282549}
-  hitDust: {fileID: 1999286092830639958}
-  lowHealthSmoke: {fileID: 1370528647268412648}
-  explosion: {fileID: 8893497420599105995}
+  trail: {fileID: 6682357227448521976, guid: b541152ab3c27f84e9267fc48fc6403e, type: 3}
+  hitSparks: {fileID: 3303608650405986414, guid: 56ff3ec4e5ad7d3489dd617cc02521f1, type: 3}
+  hitDust: {fileID: 4922709239549057660, guid: 77c00b52d19d9da4988fb7f26dce7f15, type: 3}
+  lowHealthSmoke: {fileID: 4043211863977047545, guid: 47a9299e823bbba4f869aa4113e2ad61, type: 3}
+  explosion: {fileID: 4359593342348121334, guid: cb2f5b9c8a0d4ab46b8b50ac1c452d25, type: 3}
   useDefaultsForEmptySlots: 1
   trailAnchor: {fileID: 0}
   smokeAnchor: {fileID: 0}
@@ -12435,6 +12436,26 @@ MonoBehaviour:
   massMultiplier: 1.25
   durationMultiplier: 1
   powerMultiplier: 1
+--- !u!114 &5943423390878465715
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5363820086092407450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fb86d1d0ff70b343aabc0dc8295bc88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimeToon.Integration.AnimeVehicleFxBridge
+  fx: {fileID: 0}
+  target: {fileID: 4261262281898267989}
+  playerTag: Player
+  impactBurstPrefab: {fileID: 6574251374261227103, guid: c1e6eca1ce837f841878d1c44068ae23, type: 3}
+  shockRingPrefab: {fileID: 8144738707832770318, guid: aefd317607bed1d4da5e5fa854c2da42, type: 3}
+  burstSize: 3
+  ringSize: 4
+  minImpactRatio: 0.3
 --- !u!1 &5371221108715335567
 GameObject:
   m_ObjectHideFlags: 0

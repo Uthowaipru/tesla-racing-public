@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94710d4bbcd6c08428b7693a4d071463, type: 3}
   m_Name: VehicleEffectsDefaults
   m_EditorClassIdentifier: Assembly-CSharp::VehicleSystem.VehicleEffectsDefaults
-  trail: {fileID: 6720275257389467276, guid: 291f29d1418715f4c906d23d3bc790bb, type: 3}
-  hitSparks: {fileID: 3513699528380846471, guid: a439ef710331b584f92b7608d680468b, type: 3}
-  hitDust: {fileID: 8786671696945706250, guid: 95efdb825b472014c80147d88d652458, type: 3}
-  lowHealthSmoke: {fileID: 7765102291678821848, guid: 9e40e89d2d244004cbdb89a4fe6ef4af, type: 3}
-  explosion: {fileID: 6976484348282901687, guid: b780270c0ec00b54c8c1f751ebe60f0e, type: 3}
+  trail: {fileID: 6682357227448521976, guid: b541152ab3c27f84e9267fc48fc6403e, type: 3}
+  hitSparks: {fileID: 3303608650405986414, guid: 56ff3ec4e5ad7d3489dd617cc02521f1, type: 3}
+  hitDust: {fileID: 4922709239549057660, guid: 77c00b52d19d9da4988fb7f26dce7f15, type: 3}
+  lowHealthSmoke: {fileID: 4043211863977047545, guid: 47a9299e823bbba4f869aa4113e2ad61, type: 3}
+  explosion: {fileID: 4359593342348121334, guid: cb2f5b9c8a0d4ab46b8b50ac1c452d25, type: 3}
