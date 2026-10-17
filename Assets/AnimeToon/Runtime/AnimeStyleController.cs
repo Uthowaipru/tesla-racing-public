@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace AnimeToon
 {
@@ -36,6 +37,11 @@ namespace AnimeToon
         public bool controlSky = true;
         [Tooltip("Re-bake skybox reflections every N seconds while playing (0 = never). Costs performance, keep it large or 0 on mobile.")]
         [Min(0f)] public float reflectionUpdateSeconds = 0f;
+
+        [Header("Post Processing")]
+        [Tooltip("Global Volume with Bloom, Color Adjustments and Vignette. Create one via Tools > Anime Toon > Create Anime Volume Profile.")]
+        public Volume volume;
+        public bool controlVolume = true;
 
         static readonly int ShadowTintId = Shader.PropertyToID("_Anime_ShadowTint");
         static readonly int ShadowTintAmountId = Shader.PropertyToID("_Anime_ShadowTintAmount");
@@ -151,11 +157,37 @@ namespace AnimeToon
                 Shader.SetGlobalFloat(SkyOverrideId, 0f);
             }
 
+            ApplyVolume(s);
+
             Shader.SetGlobalColor(ShadowTintId, s.shadowTint);
             Shader.SetGlobalFloat(ShadowTintAmountId, s.shadowTintAmount);
             Shader.SetGlobalFloat(NightAmountId, s.nightAmount);
             Shader.SetGlobalFloat(LightOffsetId, s.lightIntensityOffset);
             Shader.SetGlobalFloat(RimBoostId, s.rimBoost);
+        }
+
+        void ApplyVolume(AnimeStylePreset.Snapshot s)
+        {
+            if (!controlVolume || volume == null) return;
+            VolumeProfile profile = volume.profile;
+            if (profile == null) return;
+
+            if (profile.TryGet(out Bloom bloom))
+            {
+                bloom.intensity.Override(s.bloomIntensity);
+                bloom.threshold.Override(s.bloomThreshold);
+            }
+            if (profile.TryGet(out ColorAdjustments adjustments))
+            {
+                adjustments.postExposure.Override(s.postExposure);
+                adjustments.saturation.Override(s.saturation);
+                adjustments.contrast.Override(s.contrast);
+                adjustments.colorFilter.Override(s.colorFilter);
+            }
+            if (profile.TryGet(out Vignette vignette))
+            {
+                vignette.intensity.Override(s.vignetteIntensity);
+            }
         }
 
         bool TryEvaluate(float t, out AnimeStylePreset.Snapshot result)

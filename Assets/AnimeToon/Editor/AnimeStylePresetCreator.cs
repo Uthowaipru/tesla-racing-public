@@ -2,10 +2,13 @@
 // Tools > Anime Toon > Create Default Style Presets            (never overwrites)
 // Tools > Anime Toon > Reset Default Style Presets (Overwrite)  (restores Day/Dusk/Night values)
 // Tools > Anime Toon > Create Sky Material                      (Anime/Sky material, set as skybox)
+// Tools > Anime Toon > Create Anime Volume Profile              (bloom, tonemapping, color grading + scene Volume)
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 namespace AnimeToon.Editor
@@ -57,6 +60,9 @@ namespace AnimeToon.Editor
                 p.cloudShadow = new Color(0.7f, 0.78f, 0.95f);
                 p.cloudCoverage = 0.5f;
                 p.starAmount = 0f;
+                p.bloomIntensity = 0.6f; p.bloomThreshold = 1f;
+                p.saturation = 15f; p.contrast = 8f; p.postExposure = 0f;
+                p.colorFilter = Color.white; p.vignetteIntensity = 0.18f;
             }, overwrite);
 
             var dusk = Make("Dusk", p =>
@@ -83,6 +89,9 @@ namespace AnimeToon.Editor
                 p.cloudShadow = new Color(0.5f, 0.38f, 0.7f);
                 p.cloudCoverage = 0.55f;
                 p.starAmount = 0.2f;
+                p.bloomIntensity = 1.0f; p.bloomThreshold = 0.85f;
+                p.saturation = 20f; p.contrast = 10f; p.postExposure = 0.1f;
+                p.colorFilter = new Color(1f, 0.93f, 0.92f); p.vignetteIntensity = 0.22f;
             }, overwrite);
 
             var night = Make("Night", p =>
@@ -109,6 +118,9 @@ namespace AnimeToon.Editor
                 p.cloudShadow = new Color(0.18f, 0.2f, 0.4f);
                 p.cloudCoverage = 0.4f;
                 p.starAmount = 1f;
+                p.bloomIntensity = 1.4f; p.bloomThreshold = 0.7f;
+                p.saturation = 12f; p.contrast = 12f; p.postExposure = 0.2f;
+                p.colorFilter = new Color(0.9f, 0.93f, 1f); p.vignetteIntensity = 0.3f;
             }, overwrite);
 
             AssetDatabase.SaveAssets();
@@ -164,6 +176,80 @@ namespace AnimeToon.Editor
             AssetDatabase.SaveAssets();
             Selection.activeObject = mat;
             EditorGUIUtility.PingObject(mat);
+        }
+
+        [MenuItem("Tools/Anime Toon/Create Anime Volume Profile")]
+        static void CreateVolume()
+        {
+            EnsureFolder(Root, "Assets", "AnimeToon");
+            string folder = Root + "/Volume";
+            EnsureFolder(folder, Root, "Volume");
+            string path = folder + "/AnimeVolumeProfile.asset";
+
+            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
+            if (profile == null)
+            {
+                profile = ScriptableObject.CreateInstance<VolumeProfile>();
+                AssetDatabase.CreateAsset(profile, path);
+
+                // Tonemapping, Color Adjustments, Split Toning and Vignette all run in URP's single
+                // final "uber" pass, so they are cheap. Bloom is the expensive one, so it is set to
+                // quarter resolution with few iterations.
+                var tone = AddComponent<Tonemapping>(profile);
+                tone.mode.Override(TonemappingMode.Neutral);
+
+                var bloom = AddComponent<Bloom>(profile);
+                bloom.threshold.Override(1f);
+                bloom.intensity.Override(0.6f);
+                bloom.scatter.Override(0.6f);
+                bloom.tint.Override(Color.white);
+                bloom.highQualityFiltering.Override(false);
+                bloom.downscale.Override(BloomDownscaleMode.Quarter);
+                bloom.maxIterations.Override(5);
+
+                var adjustments = AddComponent<ColorAdjustments>(profile);
+                adjustments.saturation.Override(15f);
+                adjustments.contrast.Override(8f);
+
+                var split = AddComponent<SplitToning>(profile);
+                split.shadows.Override(new Color(0.55f, 0.55f, 0.85f));
+                split.highlights.Override(new Color(1f, 0.9f, 0.75f));
+                split.balance.Override(0f);
+
+                var vignette = AddComponent<Vignette>(profile);
+                vignette.intensity.Override(0.18f);
+                vignette.smoothness.Override(0.4f);
+
+                EditorUtility.SetDirty(profile);
+                AssetDatabase.SaveAssets();
+            }
+
+            var go = new GameObject("Anime Volume");
+            Undo.RegisterCreatedObjectUndo(go, "Create Anime Volume");
+            var vol = go.AddComponent<Volume>();
+            vol.isGlobal = true;
+            vol.priority = 10f;
+            vol.sharedProfile = profile;
+
+            var controller = Object.FindFirstObjectByType<AnimeStyleController>();
+            if (controller != null)
+            {
+                Undo.RecordObject(controller, "Assign Anime Volume");
+                controller.volume = vol;
+                EditorUtility.SetDirty(controller);
+            }
+
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            Selection.activeObject = go;
+        }
+
+        static T AddComponent<T>(VolumeProfile profile) where T : VolumeComponent
+        {
+            var c = profile.Add<T>(false);
+            c.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy;
+            c.name = typeof(T).Name;
+            AssetDatabase.AddObjectToAsset(c, profile);
+            return c;
         }
 
         static void EnsureFolder(string path, string parent, string name)

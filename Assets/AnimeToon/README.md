@@ -37,6 +37,9 @@ AnimeToon/
 - **Water:** `Anime/Water`. Enable Depth Texture in the URP asset.
 - **Sky:** Tools > Anime Toon > Create Sky Material (sets it as the skybox). With an
   `AnimeStyleController` in the scene the sky colors, clouds, glow and stars follow the presets.
+- **Post processing:** Tools > Anime Toon > Create Anime Volume Profile (bloom, neutral tonemapping,
+  saturation/contrast, split toning, vignette; assigned to the controller, which then blends it per preset).
+  Turn on Post Processing on the camera. Disable any other Volume that also overrides Bloom/Tonemapping.
 - **Mood:** add an empty GameObject with `AnimeStyleController`, assign your Directional Light,
   run Tools > Anime Toon > Create Default Style Presets, then scrub Time Of Day.
   If you made presets with an older version, run Tools > Anime Toon > Reset Default Style Presets (Overwrite)

@@ -34,3 +34,10 @@ MonoBehaviour:
   cloudShadow: {r: 0.5, g: 0.38, b: 0.7, a: 1}
   cloudCoverage: 0.55
   starAmount: 0.2
+  bloomIntensity: 1
+  bloomThreshold: 0.85
+  saturation: 20
+  contrast: 10
+  postExposure: 0.1
+  colorFilter: {r: 1, g: 0.93, b: 0.92, a: 1}
+  vignetteIntensity: 0.22

@@ -42,6 +42,15 @@ namespace AnimeToon
         [Range(0f, 1f)] public float cloudCoverage = 0.5f;
         [Range(0f, 1f)] public float starAmount = 0f;
 
+        [Header("Post Processing (needs an Anime Volume, see Tools > Anime Toon)")]
+        [Range(0f, 3f)] public float bloomIntensity = 0.6f;
+        [Range(0f, 2f)] public float bloomThreshold = 1f;
+        [Range(-100f, 100f)] public float saturation = 15f;
+        [Range(-100f, 100f)] public float contrast = 8f;
+        public float postExposure = 0f;
+        public Color colorFilter = Color.white;
+        [Range(0f, 1f)] public float vignetteIntensity = 0.18f;
+
         public struct Snapshot
         {
             public Color sunColor;
@@ -57,6 +66,9 @@ namespace AnimeToon
             public float horizonGlowAmount;
             public Color cloudLit, cloudShadow;
             public float cloudCoverage, starAmount;
+            public float bloomIntensity, bloomThreshold, saturation, contrast, postExposure;
+            public Color colorFilter;
+            public float vignetteIntensity;
 
             public static Snapshot Lerp(Snapshot a, Snapshot b, float t)
             {
@@ -83,6 +95,13 @@ namespace AnimeToon
                 s.cloudShadow = Color.Lerp(a.cloudShadow, b.cloudShadow, t);
                 s.cloudCoverage = Mathf.Lerp(a.cloudCoverage, b.cloudCoverage, t);
                 s.starAmount = Mathf.Lerp(a.starAmount, b.starAmount, t);
+                s.bloomIntensity = Mathf.Lerp(a.bloomIntensity, b.bloomIntensity, t);
+                s.bloomThreshold = Mathf.Lerp(a.bloomThreshold, b.bloomThreshold, t);
+                s.saturation = Mathf.Lerp(a.saturation, b.saturation, t);
+                s.contrast = Mathf.Lerp(a.contrast, b.contrast, t);
+                s.postExposure = Mathf.Lerp(a.postExposure, b.postExposure, t);
+                s.colorFilter = Color.Lerp(a.colorFilter, b.colorFilter, t);
+                s.vignetteIntensity = Mathf.Lerp(a.vignetteIntensity, b.vignetteIntensity, t);
                 return s;
             }
         }
@@ -112,6 +131,13 @@ namespace AnimeToon
             s.cloudShadow = cloudShadow;
             s.cloudCoverage = cloudCoverage;
             s.starAmount = starAmount;
+            s.bloomIntensity = bloomIntensity;
+            s.bloomThreshold = bloomThreshold;
+            s.saturation = saturation;
+            s.contrast = contrast;
+            s.postExposure = postExposure;
+            s.colorFilter = colorFilter;
+            s.vignetteIntensity = vignetteIntensity;
             return s;
         }
     }
