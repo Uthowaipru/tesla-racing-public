@@ -152,9 +152,9 @@ MonoBehaviour:
   spawnPoints:
   - {fileID: 1171896766}
   localRig: {fileID: 1194884527}
-  road: {fileID: 0}
+  road: {fileID: 1111244043}
   spawnOnRoadStart: 1
-  match: {fileID: 0}
+  match: {fileID: 1197217009}
   botCount: 3
   botDifficulty: 1
   customBotSettings:
@@ -5451,7 +5451,7 @@ Transform:
   m_GameObject: {fileID: 1171896765}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -11.9, y: 2.03, z: -21}
+  m_LocalPosition: {x: 35, y: -10, z: 0}
   m_LocalScale: {x: 2.5078, y: 0.68969125, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
