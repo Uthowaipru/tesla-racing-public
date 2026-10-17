@@ -49,6 +49,7 @@ namespace VehicleSystem
         VehicleController vehicle;
         VehicleStats stats;
         VehicleHealth health;
+        VehicleDriver driver;
         Rigidbody rb;
         float baseMass;
 
@@ -57,6 +58,7 @@ namespace VehicleSystem
             vehicle = GetComponent<VehicleController>();
             stats = vehicle.Stats;
             health = GetComponent<VehicleHealth>();
+            driver = GetComponent<VehicleDriver>();
             rb = GetComponent<Rigidbody>();
             baseMass = rb != null ? rb.mass : 1f;
             Batteries = Mathf.Clamp(startingBatteries, 0, maxBatteries);
@@ -114,6 +116,8 @@ namespace VehicleSystem
         {
             if (IsBoosting || Batteries <= 0) return false;
             if (health != null && health.IsDestroyed) return false;
+            if (driver == null) TryGetComponent(out driver);
+            if (driver != null && !driver.inputEnabled) return false; // countdown, match over
 
             Batteries--;
             BatteriesChanged?.Invoke(Batteries);

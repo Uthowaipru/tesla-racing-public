@@ -22,11 +22,25 @@ namespace VehicleSystem
         public Transform[] spawnPoints;
         [Tooltip("Found in the scene if empty. Turn OFF its 'Auto Attach Scene Vehicle' option: this spawner attaches the car.")]
         public LocalPlayerRig localRig;
+        TrafficManager traffic;
 
         [Header("Road")]
         [Tooltip("Found in the scene if empty. With a road, vehicles start on it instead of at the spawn points.")]
         public RoadGenerator road;
         public bool spawnOnRoadStart = true;
+
+        [Header("Match")]
+        [Tooltip("Found in the scene if empty. Spawned vehicles join it.")]
+        public MatchManager match;
+
+        [Header("Bots (AI rivals)")]
+        [Tooltip("How many bots race with the player. They take the next starting slots and join the match.")]
+        [Min(0)] public int botCount = 0;
+        public BotDifficulty botDifficulty = BotDifficulty.Normal;
+        [Tooltip("Used when Bot Difficulty is Custom.")]
+        public BotSettings customBotSettings = new BotSettings();
+        [Tooltip("Spawn the bots when the scene starts, right after the player.")]
+        public bool spawnBotsOnStart = true;
 
         [Header("Single player")]
         [Tooltip("On Start: spawn the vehicle chosen in the selector for the local player.")]
@@ -39,7 +53,58 @@ namespace VehicleSystem
         {
             if (localRig == null) localRig = FindFirstObjectByType<LocalPlayerRig>();
             if (road == null) road = FindFirstObjectByType<RoadGenerator>();
+            if (match == null) match = FindFirstObjectByType<MatchManager>();
             if (spawnLocalPlayerOnStart) SpawnLocalFromProfile();
+            if (spawnBotsOnStart && botCount > 0) SpawnBots();
+        }
+
+        /// <summary>Spawns the bots: slots 1, 2, 3 ... with vehicles taken in turn from the catalog.</summary>
+        public List<VehicleController> SpawnBots()
+        {
+            var bots = new List<VehicleController>();
+            if (catalog == null || catalog.First == null)
+            {
+                Debug.LogError("VehicleSpawner: bots need a catalog with at least one vehicle.", this);
+                return bots;
+            }
+
+            for (int i = 0; i < botCount; i++)
+            {
+                VehicleDefinition def = catalog.vehicles[(i + 1) % catalog.vehicles.Count];
+                if (def == null) def = catalog.First;
+
+                var slot = new PlayerSlot
+                {
+                    slotId = i + 1,
+                    displayName = "Bot " + (i + 1),
+                    vehicleId = def.id,
+                    controller = SlotController.AI
+                };
+
+                VehicleController bot = Spawn(slot);
+                if (bot != null) bots.Add(bot);
+            }
+            return bots;
+        }
+
+        void AddBotDriver(VehicleController car, PlayerSlot slot)
+        {
+            if (road == null || !road.IsStarted)
+            {
+                Debug.LogWarning("VehicleSpawner: bots need a road (GameObject > Vehicle > Road System). This bot will stand still.", this);
+                return;
+            }
+
+            if (traffic == null) traffic = FindFirstObjectByType<TrafficManager>();
+
+            BotSettings settings = botDifficulty == BotDifficulty.Custom ? customBotSettings : BotSettings.Preset(botDifficulty);
+            int seed = road.Seed + slot.slotId * 7919;
+
+            var bot = car.gameObject.AddComponent<BotInput>();
+            bot.Configure(settings, road, traffic, seed);
+
+            if (!car.TryGetComponent(out VehicleDriver driver)) driver = car.gameObject.AddComponent<VehicleDriver>();
+            driver.SetSource(bot);
         }
 
         /// <summary>Spawns the vehicle the player picked in the selector (or the catalog's first).</summary>
@@ -107,6 +172,10 @@ namespace VehicleSystem
                 localRig.Attach(car);
                 LocalVehicle = car;
             }
+
+            if (slot.controller == SlotController.AI) AddBotDriver(car, slot);
+
+            if (match != null) match.RegisterPlayer(car, slot.displayName, slot.controller == SlotController.LocalHuman);
 
             return car;
         }

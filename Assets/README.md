@@ -13,11 +13,12 @@ Scripts/
   Input/     LocalPlayerInput (was VehicleInput), InputModeManager, MobileControls, TouchHoldButton
   Camera/    VehicleCameraRig
   Player/    LocalPlayerRig (new), PlayerProfile (new: remembers the chosen vehicle)
-  UI/        PauseMenu, ControlsOverlay, ResetCounterUI, Speedometer, HealthBar, RespawnCountdown, VehicleNameTag, PickupHud, WrongWayBanner (new)
+  UI/        PauseMenu, ControlsOverlay, ResetCounterUI, Speedometer, HealthBar, RespawnCountdown, VehicleNameTag, PickupHud, WrongWayBanner, MatchHud (new)
   Menu/      VehicleSelectMenu, VehiclePreviewStage, VehiclePreviewDrag (new: vehicle selector with 3D preview)
   Data/      VehicleDefinition, VehicleCatalog, StatModifierDef, MapDefinition, VehicleEffectsDefaults (new ScriptableObjects)
-  Race/      RaceConfig, PlayerSlot, VehicleSpawner
+  Race/      RaceConfig, PlayerSlot, VehicleSpawner, MatchManager, MatchPlayer (new)
   Pickups/   Pickup (battery, repair kit)
+  Bots/      BotInput, BotSettings (new)
   Road/      SeededRandom, RoadChunk, RoadPath, RoadGenerator, TrafficVehicle, TrafficManager, PickupPlacer, WrongWayTracker (new)
   Editor/    ControlsOverlayBuilder, MobileControlsBuilder, VehicleSelectMenuBuilder, SpeedometerBuilder, VehicleStatsEditor
 ```
@@ -95,6 +96,32 @@ Scripts/
   (`Spawn On Road Start`); `LocalPlayerRig` makes the road follow the local vehicle, and "off the road" counts as not safe for the
   repair kit (`VehicleRecovery.isPositionSafe`).
 
+## Bots (latest)
+
+- **BotInput** is an AI input source (like the keyboard, but for a bot): the bot vehicle is the same prefab with the same physics, health,
+  recovery and respawn, driven through a `VehicleDriver`. It follows a lane at a share of its top speed, looks ahead for slower NPC traffic and
+  other racers, changes to a freer lane (or follows at a gap, brakes hard when too close), and with `Aggression` leans into an NPC beside it for a
+  side bump. Bots keep to the normal road, never reverse, and never collect pickups (those are the local player's).
+- **Setup:** `VehicleSpawner > Bots`: `Bot Count`, `Bot Difficulty` (Easy / Normal / Hard / Custom with every number in `BotSettings`). Bots take
+  the next starting slots, use the catalog vehicles in turn, show "Bot 1..." on their name tags and join the match, so the position on the HUD
+  counts them and rams / overtakes between racers now score.
+- Each bot gets a small seeded variation of speed and aggression.
+
+## Match: timer, countdown and score
+
+- **MatchManager** runs one match: countdown (input locked), a timer (3 / 6 / 10 / 12 min or custom) and the score. No finish line: when the time is up the
+  most points wins. Vehicles join through `VehicleSpawner` (or, if none did, the `LocalPlayerRig` vehicle joins). At the start every
+  vehicle gets its batteries, repair kits and health reset; `Begin()` can be called by hand (`Auto Start` off), for example when a room is ready.
+- **Points (every value is a field, per scene):** 100 m = +10 (x the WrongWayTracker multiplier), NPC side bump +20 / +30 (once per NPC; slow
+  bumps pay nothing), chain bonus (+5 / +10 / +20 / +30 per bump from the 5th, within 4 s), rival ram +20 behind / +25 side, overtake +10,
+  crossing bonus (from WrongWayTracker), destroyed -50. Speed tiers use the player's OWN speed against their top speed (the thresholds of
+  the VehicleImpactSensor).
+- **Events:** `StateChanged`, `PointsAwarded(player, points, reason)`, `Finished(MatchResult)`. `MatchResult` has score, rank, distance,
+  statistics and the coins (10 points each) and cash (40 points each) the match gave. Saving them is the profile's job (not built yet).
+- **MatchHud:** time, points and position, 3-2-1-GO, "+20 SIDE BUMP" pop-ups and the results screen with PLAY AGAIN / MAIN MENU
+  (created by LocalPlayerRig when a MatchManager exists; Tools > Vehicle > Generate Match HUD UI to edit it).
+- **Setup:** GameObject > Vehicle > Match Manager.
+
 ## Two-way road (optional, per scene)
 
 Tick **Two Way Road** on the RoadGenerator in any scene to switch it on; leave it off for the one-way road. Seeded content of the normal road is
@@ -109,6 +136,10 @@ unchanged by this switch (oncoming traffic and pickups use their own random chan
   wrong way), crossing bonus events (`CrossedToOncoming(bonus)`, `CrossedToForward(bonus)`), cooldown, hysteresis, teleport handling.
   It holds no score: the match score reads it.
 - **WrongWayBanner** HUD: "WRONG WAY x2" and "+50 CROSSING BONUS" (created by LocalPlayerRig when a tracker exists).
+- **If the banner or points do not appear:** the tracker needs (1) **Two Way Road** ticked on the RoadGenerator, (2) the two-way pieces assigned
+  (select the Road System > Fill With Default Pieces...), and (3) for points, a **MatchManager** in the scene. A Road System made earlier gets
+  its WrongWayTracker automatically; the tracker's Inspector shows live status while playing. The oncoming road can only be entered at a crossover
+  piece (first one at piece `First Crossover Index`, 3 by default = about 180 m; set it to 1 to test). Wrong-way distance points show as "+20 WRONG WAY".
 - Head-on damage is unchanged: `VehicleHealth > Head On Kills / Head On Kill Tier` decide how deadly oncoming traffic is.
 
 ## Pickups and boost

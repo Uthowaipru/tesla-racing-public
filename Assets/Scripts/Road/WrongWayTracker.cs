@@ -51,10 +51,35 @@ namespace VehicleSystem
         public event Action<int> CrossedToOncoming;
         public event Action<int> CrossedToForward;
 
+        /// <summary>Distance from the middle of the median (positive = oncoming side). For checking the setup.</summary>
+        public float LastLateral { get; private set; }
+
         float sHint;
+        bool warned;
         float lastCrossingTime = -999f;
         Vector3 lastPosition;
         bool hasLastPosition;
+
+        void OnEnable()
+        {
+            if (road == null) road = FindFirstObjectByType<RoadGenerator>();
+        }
+
+        /// <summary>A short report of everything the tracker depends on (shown in its Inspector while playing).</summary>
+        public string DebugStatus()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Road: " + (road == null ? "NOT FOUND" : road.IsStarted ? "started" : "not started yet"));
+            if (road != null)
+            {
+                sb.AppendLine("Two Way Road ticked: " + road.twoWayRoad);
+                sb.AppendLine("Two-way active: " + road.IsTwoWay + "  (oncoming lanes: " + road.OncomingLaneCount + ")");
+                sb.AppendLine("Followed vehicle: " + (road.target == null ? "NONE (LocalPlayerRig sets it)" : road.target.name));
+            }
+            sb.AppendLine("Side: " + Side + "   lateral: " + LastLateral.ToString("0.0") + " m   crossings: " + CrossingCount);
+            sb.Append("Wrong-way distance: " + WrongWayDistance.ToString("0") + " m   multiplier: " + ScoreMultiplier);
+            return sb.ToString();
+        }
 
         /// <summary>Start of a match: forget distances, crossings and the side.</summary>
         public void ResetStats()
@@ -73,6 +98,12 @@ namespace VehicleSystem
             // nothing to track on a one-way road
             if (road.OncomingLaneCount <= 0)
             {
+                if (road.twoWayRoad && !warned)
+                {
+                    warned = true;
+                    Debug.LogWarning("WrongWayTracker: 'Two Way Road' is ticked but the road has no oncoming lanes. Assign the two-way pieces " +
+                                     "(select the Road System and click 'Fill With Default Pieces, Traffic And Pickups').", this);
+                }
                 if (Side != RoadSide.Forward) SetSide(RoadSide.Forward, 0, silent: true);
                 hasLastPosition = false;
                 return;
@@ -83,6 +114,7 @@ namespace VehicleSystem
             float step = hasLastPosition && !teleported ? Vector3.ProjectOnPlane(position - lastPosition, Vector3.up).magnitude : 0f;
 
             float lateral = road.LateralOffset(position, teleported ? -1f : sHint, out sHint);
+            LastLateral = lateral;
             float limit = road.MedianWidth * 0.5f + switchMargin;
 
             // hysteresis: only change side once clearly beyond the median

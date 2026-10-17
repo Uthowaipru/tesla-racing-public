@@ -101,9 +101,14 @@ namespace VehicleSystem.EditorTools
         /// <summary>Assigns the default road pieces, traffic vehicles and pickups to the Road System on this object.</summary>
         public static void FillDefaults(RoadGenerator generator)
         {
-            var traffic = generator.GetComponent<TrafficManager>();
-            var pickups = generator.GetComponent<PickupPlacer>();
-            var tracker = generator.GetComponent<WrongWayTracker>();
+            // add what an older Road System is missing
+            var go = generator.gameObject;
+            var traffic = go.GetComponent<TrafficManager>();
+            if (traffic == null) traffic = Undo.AddComponent<TrafficManager>(go);
+            var pickups = go.GetComponent<PickupPlacer>();
+            if (pickups == null) pickups = Undo.AddComponent<PickupPlacer>(go);
+            var tracker = go.GetComponent<WrongWayTracker>();
+            if (tracker == null) tracker = Undo.AddComponent<WrongWayTracker>(go);
 
             Undo.RecordObject(generator, "Fill Road Defaults");
             generator.chunkPrefabs = Compact(Load<RoadChunk>(StraightPath), Load<RoadChunk>(CurveLeftPath), Load<RoadChunk>(CurveRightPath));
@@ -152,7 +157,7 @@ namespace VehicleSystem.EditorTools
 
         // ------------------------------------------------------------------ building
 
-        static Material asphalt, curb, marking, glass, headlight;
+        static Material asphalt, curb, marking, glass, headlight, marker;
 
         static void Prepare()
         {
@@ -164,6 +169,7 @@ namespace VehicleSystem.EditorTools
             marking = MakeMaterial("Road Marking", new Color(0.92f, 0.92f, 0.85f));
             glass = MakeMaterial("Traffic Glass", new Color(0.12f, 0.16f, 0.2f));
             headlight = MakeMaterial("Traffic Light", new Color(1f, 0.95f, 0.6f));
+            marker = MakeMaterial("Road Crossover Marker", new Color(1f, 0.72f, 0.1f));
         }
 
         static void Finish()
@@ -249,8 +255,15 @@ namespace VehicleSystem.EditorTools
                     Prim(PrimitiveType.Cube, "Lane Mark", root.transform, middle + right * (left + forwardWidth + median + d * laneWidth) + Vector3.up * 0.011f, rotation,
                          new Vector3(0.12f, 0.02f, 6f), marking, false);
 
-                // the median between the two roads; a crossover piece has an opening in the middle two segments
+                // the median between the two roads; a crossover piece has an opening in the middle two segments,
+                // marked by tall yellow posts so players can see where to cross
                 bool opening = crossover && (i == 1 || i == 2);
+                if (crossover && i == 1)
+                    Prim(PrimitiveType.Cube, "Crossover Post A", root.transform, position + right * (left + forwardWidth + median * 0.5f) + Vector3.up * 1.25f, rotation,
+                         new Vector3(0.5f, 2.5f, 0.5f), marker, false);
+                if (crossover && i == 2)
+                    Prim(PrimitiveType.Cube, "Crossover Post B", root.transform, position + forward * segmentLength + right * (left + forwardWidth + median * 0.5f) + Vector3.up * 1.25f, rotation,
+                         new Vector3(0.5f, 2.5f, 0.5f), marker, false);
                 if (oncomingLanes > 0 && !opening)
                     Prim(PrimitiveType.Cube, "Median " + i, root.transform, middle + right * (left + forwardWidth + median * 0.5f) + Vector3.up * 0.15f, rotation,
                          new Vector3(median, 0.5f, pieceLength), curb, true);
@@ -367,6 +380,23 @@ namespace VehicleSystem.EditorTools
 
             if (GUILayout.Button("Fill With Default Pieces, Traffic And Pickups"))
                 RoadPrefabBuilder.FillDefaults(generator);
+        }
+    }
+
+    [CustomEditor(typeof(WrongWayTracker))]
+    public class WrongWayTrackerEditor : UnityEditor.Editor
+    {
+        public override bool RequiresConstantRepaint() => Application.isPlaying;
+
+        public override void OnInspectorGUI()
+        {
+            DrawDefaultInspector();
+            EditorGUILayout.Space();
+
+            if (Application.isPlaying)
+                EditorGUILayout.HelpBox(((WrongWayTracker)target).DebugStatus(), MessageType.Info);
+            else
+                EditorGUILayout.HelpBox("Press Play to see here whether the road, the two-way pieces and the followed vehicle are all found.", MessageType.None);
         }
     }
 

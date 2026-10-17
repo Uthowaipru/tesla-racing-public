@@ -16,6 +16,8 @@ namespace VehicleSystem
     public class TrafficManager : MonoBehaviour
     {
         public RoadGenerator road;
+        /// <summary>The traffic on the road right now (bots look at it).</summary>
+        public IReadOnlyList<TrafficVehicle> ActiveVehicles => active;
         [Tooltip("The vehicles that can appear. Each has its own weight and allowed lanes.")]
         public TrafficVehicle[] vehiclePrefabs;
 

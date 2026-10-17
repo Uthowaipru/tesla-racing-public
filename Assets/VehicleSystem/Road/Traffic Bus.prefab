@@ -193,7 +193,7 @@ MonoBehaviour:
   maxLane: 0
   length: 11
   groundOffset: 0.05
-  acceleration: 6
+  acceleration: 22.82
   turnRate: 120
   lookAhead: 8
   centerOfMassHeight: 0.4

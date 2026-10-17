@@ -21,48 +21,28 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: glasswall
-  m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+  m_Shader: {fileID: 4800000, guid: d85d56804938d454c9c523ee0d711397, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _FACADE_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 1
+  m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap:
-    RenderType: Opaque
+  stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _AO_r_metalic_g_smoothness_a:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _BC_rgb_transparency_a:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
     - _BaseMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    - _BumpMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _DetailAlbedoMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _DetailMask:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _DetailNormalMap:
+    - _BrushTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -70,103 +50,106 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    - _MainTex:
+    - _ShadingMask:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    - _MetallicGlossMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _OcclusionMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _PainterlyMask_nrm_r_colVar_g:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _ParallaxMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _SpecGlossMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _Texture2D:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - unity_Lightmaps:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - unity_LightmapsInd:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - unity_ShadowMasks:
+    - _SpecShiftTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AddPrecomputedVelocity: 0
+    - _AOStrength: 1
+    - _AdditionalLightIntensity: 1
+    - _AdditionalLightSoftness: 0.15
     - _AlphaClip: 0
-    - _AlphaToMask: 0
-    - _Blend: 0
-    - _BlendModePreserveSpecular: 1
-    - _BumpScale: 1
-    - _ClearCoatMask: 0
-    - _ClearCoatSmoothness: 0
-    - _Cull: 0
+    - _AmbientInfluence: 0.35
+    - _AnisoSpec: 0
+    - _BaseAlpha: 1
+    - _BrushScale: 0.3
+    - _BrushStrength: 0.1
+    - _Cull: 2
     - _Cutoff: 0.5
-    - _DetailAlbedoMapScale: 1
-    - _DetailNormalMapScale: 1
-    - _DstBlend: 0
-    - _DstBlendAlpha: 0
-    - _EnvironmentReflections: 1
-    - _GlossMapScale: 1
-    - _Glossiness: 0.86923075
-    - _GlossyReflections: 1
-    - _Max: 1
-    - _Metalic: 0
-    - _Metallic: 1
-    - _Min: 0.3
-    - _Mode: 0
-    - _OcclusionStrength: 1
-    - _Parallax: 0.02
-    - _QueueControl: 0
-    - _QueueOffset: 0
-    - _ReceiveShadows: 1
-    - _Shades: 0.49
-    - _Smoothness: 1
-    - _SmoothnessTextureChannel: 0
-    - _SpecularHighlights: 1
-    - _SrcBlend: 1
-    - _SrcBlendAlpha: 1
-    - _StrokeBlendingNoiseScale: 500
-    - _StrokeBlendingNoiseStrength: 0.271
-    - _StrokeRandomness: 0.484
-    - _StrokeScale: 4.94
-    - _Surface: 0
-    - _Transparency: 1
-    - _UVSec: 0
-    - _UseBlendingNoise: 1
-    - _Variation: 0
-    - _WorkflowMode: 1
-    - _XRMotionVectorsPass: 1
-    - _ZWrite: 1
-    - _outline: 0
+    - _FacadeOn: 1
+    - _FaceSuppress: 0.9
+    - _FloorHeight: 3
+    - _FresnelAlpha: 0.5
+    - _FresnelPower: 1.81
+    - _GradientMaxY: 30
+    - _GradientMinY: 0
+    - _GradientStrength: 0.5
+    - _LedgeDarken: 0.25
+    - _LedgeThickness: 0.08
+    - _LightIntensity: 0.9
+    - _LitRatio: 0.4
+    - _NightAmount: 0.297
+    - _NoiseScale: 0.4
+    - _NoiseStrength: 0.15
+    - _OutlineBaseTint: 0.6
+    - _OutlineDistMax: 15
+    - _OutlineDistMin: 1
+    - _OutlineWidth: 1.5
+    - _ProbeBlend: 0.8
+    - _ProbeRoughness: 0.15
+    - _ReceiveShadow: 1
+    - _ReflectionBoost: 1.2
+    - _ReflectionStrength: 0.55
+    - _RimGroundFade: 1
+    - _RimIntensity: 0.2
+    - _RimSoftness: 0.12
+    - _RimWidth: 0.75
+    - _Softness: 0.05
+    - _SoftnessMax: 0.08
+    - _SoftnessMin: 0.01
+    - _SpecExpHigh: 200
+    - _SpecExpLow: 30
+    - _SpecIntensity: 0
+    - _SpecLowWeight: 0.4
+    - _SpecShift1: 0
+    - _SpecShift2: 0.3
+    - _SpecShiftTexStrength: 0.3
+    - _SpecSoftness: 0.05
+    - _SpecThreshold: 0.5
+    - _StreakIntensity: 0.5
+    - _StreakParallax: 0.5
+    - _StreakScale: 2
+    - _StreakSoftness: 0.02
+    - _StreakWidth: 0.12
+    - _SunExponent: 60
+    - _SunIntensity: 0.8
+    - _SunThreshold: 0.6
+    - _Threshold: 0.5
+    - _Threshold1: 0.5
+    - _Threshold2: 0.25
+    - _UseFaceMask: 0
+    - _VertexAOStrength: 0
+    - _WindowEmission: 2
+    - _WindowSpacing: 2.5
     m_Colors:
-    - _BaseColor: {r: 0.4811321, g: 0.4811321, b: 0.4811321, a: 1}
-    - _Color: {r: 0.4811321, g: 0.4811321, b: 0.4811321, a: 1}
-    - _Color_1: {r: 0, g: 0, b: 0, a: 1}
-    - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
-    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
-    - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _VariationColorA: {r: 0, g: 0, b: 0, a: 0}
-    - _VariationColorB: {r: 1, g: 1, b: 1, a: 0}
+    - _AOColor: {r: 0.5, g: 0.41999996, b: 0.72, a: 1}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _BrushWeights: {r: 1, g: 0, b: 0, a: 0}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _FacadeOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _GlassTint: {r: 0.34999996, g: 0.6, b: 0.85, a: 1}
+    - _GlassTopTint: {r: 0.75, g: 0.9, b: 1, a: 1}
+    - _GradientBottomColor: {r: 0.75, g: 0.65, b: 0.9, a: 1}
+    - _GradientTopColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HorizonColor: {r: 1, g: 0.85, b: 0.9, a: 1}
+    - _LitTint: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColor: {r: 0.14999998, g: 0.09999997, b: 0.11999995, a: 1}
+    - _RimColor: {r: 1, g: 0.9, b: 0.85, a: 1}
+    - _ShadowTint: {r: 0.62, g: 0.54999995, b: 0.85, a: 1}
+    - _ShadowTint1: {r: 0.85, g: 0.78, b: 0.92, a: 1}
+    - _ShadowTint2: {r: 0.6, g: 0.5, b: 0.8, a: 1}
+    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
+    - _StreakColor: {r: 1, g: 1, b: 1, a: 1}
+    - _WindowBottomColor: {r: 0.24999997, g: 0.34999996, b: 0.6, a: 1}
+    - _WindowLitColor: {r: 1, g: 0.85, b: 0.5, a: 1}
+    - _WindowOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _WindowSize: {r: 0.89, g: 4.62, b: 0, a: 0}
+    - _WindowTopColor: {r: 0.65, g: 0.85, b: 1, a: 1}
+    - _ZenithColor: {r: 0.5, g: 0.7, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

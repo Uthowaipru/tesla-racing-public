@@ -57,6 +57,10 @@ namespace VehicleSystem
         public int Direction { get; private set; } = 1;
         /// <summary>Distance along the road.</summary>
         public float S { get; private set; }
+        /// <summary>Sideways position of its lane (from the road's centre line).</summary>
+        public float LaneOffset => laneOffset;
+        /// <summary>The speed it drives at (m/s).</summary>
+        public float Speed => speed;
         public bool Expired { get; private set; }
         public bool RewardClaimed { get; private set; }
         [HideInInspector] public TrafficVehicle sourcePrefab;

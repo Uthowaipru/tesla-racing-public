@@ -20,7 +20,7 @@ MonoBehaviour:
   motorTorque: 802.6
   maxSpeedKmh: 80.5
   brakeTorque: 1800
-  steerAngle: 80
+  steerAngle: 65
   tireGrip: 1
   suspensionSpring: 18000
   suspensionDamper: 1800

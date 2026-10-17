@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Traffic Blue
-  m_Shader: {fileID: -6465566751694194690, guid: ac52d001c3d4a894781ddee10c6273ca, type: 3}
+  m_Shader: {fileID: 4800000, guid: d495e0727d15b994ab03c80e1c1357fd, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -25,6 +25,10 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BrushTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -64,7 +68,15 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _ShadingMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SpecShiftTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -86,11 +98,16 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AOStrength: 1
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
+    - _AmbientInfluence: 0.3
+    - _AnisoSpec: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
+    - _BrushScale: 4
+    - _BrushStrength: 0
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
@@ -101,34 +118,74 @@ Material:
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
+    - _FaceSuppress: 0.9
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _GradientMaxY: 20
+    - _GradientMinY: 0
+    - _GradientStrength: 0.5
+    - _LightIntensity: 0.85
     - _Max: 1
     - _Metallic: 0
     - _Min: 0.3
     - _OcclusionStrength: 1
+    - _OutlineBaseTint: 0.6
+    - _OutlineDistMax: 15
+    - _OutlineDistMin: 1
+    - _OutlineWidth: 4.14
     - _Parallax: 0.005
     - _QueueControl: 0
     - _QueueOffset: 0
+    - _ReceiveShadow: 1
     - _ReceiveShadows: 1
+    - _RimIntensity: 0.27
+    - _RimSoftness: 0.2
+    - _RimWidth: 0.758
     - _Shades: 0.49
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
+    - _Softness: 0.05
+    - _SoftnessMax: 0.08
+    - _SoftnessMin: 0.01
+    - _SpecExpHigh: 200
+    - _SpecExpLow: 30
+    - _SpecIntensity: 0
+    - _SpecLowWeight: 0.4
+    - _SpecShift1: 0
+    - _SpecShift2: 0.3
+    - _SpecShiftTexStrength: 0.3
+    - _SpecSoftness: 0.05
+    - _SpecThreshold: 0.5
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
+    - _Threshold: 0.5
+    - _Threshold1: 0.5
+    - _Threshold2: 0.25
+    - _UseFaceMask: 0
+    - _VertexAOStrength: 0.8
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     - _outline: 0
     m_Colors:
+    - _AOColor: {r: 0.5, g: 0.41999996, b: 0.72, a: 1}
     - _BaseColor: {r: 0.2, g: 0.4, b: 0.85, a: 1}
+    - _BrushWeights: {r: 1, g: 0, b: 0, a: 0}
     - _Color: {r: 0.19999996, g: 0.39999998, b: 0.85, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _GradientBottomColor: {r: 0.75, g: 0.65, b: 0.9, a: 1}
+    - _GradientTopColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LitTint: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _RimColor: {r: 1, g: 0.95, b: 0.9, a: 1}
+    - _ShadowTint: {r: 0.72, g: 0.65999997, b: 0.88, a: 1}
+    - _ShadowTint1: {r: 0.85, g: 0.78, b: 0.92, a: 1}
+    - _ShadowTint2: {r: 0.6, g: 0.5, b: 0.8, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &7764282278732553532

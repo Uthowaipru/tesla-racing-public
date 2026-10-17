@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f85ffac87f8f7a4b946c41aef789b07, type: 3}
+  m_Name: Dusk
+  m_EditorClassIdentifier: Assembly-CSharp::AnimeToon.AnimeStylePreset
+  sunColor: {r: 1, g: 0.6, b: 0.38, a: 1}
+  sunIntensity: 1
+  sunEuler: {x: 12, y: -60, z: 0}
+  ambientSky: {r: 0.55, g: 0.45, b: 0.75, a: 1}
+  ambientEquator: {r: 0.95, g: 0.62, b: 0.6, a: 1}
+  ambientGround: {r: 0.4, g: 0.3, b: 0.5, a: 1}
+  fogColor: {r: 0.98, g: 0.68, b: 0.65, a: 1}
+  fogDensity: 0.012
+  shadowTint: {r: 0.5, g: 0.38, b: 0.75, a: 1}
+  shadowTintAmount: 0.8
+  nightAmount: 0.35
+  lightIntensityOffset: 0
+  rimBoost: 0.6

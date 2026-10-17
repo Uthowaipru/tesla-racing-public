@@ -118,6 +118,12 @@ namespace VehicleSystem
             return chunkPrefabs;
         }
 
+        void Awake()
+        {
+            // Road Systems made before the wrong-way scoring existed have no tracker: add it, it does nothing on a one-way road
+            if (GetComponent<WrongWayTracker>() == null) gameObject.AddComponent<WrongWayTracker>();
+        }
+
         void Start()
         {
             if (autoStart) Begin(randomSeedOnStart ? Environment.TickCount : seed);

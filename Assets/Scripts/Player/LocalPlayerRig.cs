@@ -41,6 +41,9 @@ namespace VehicleSystem
         [Tooltip("Optional. On a two-way road it tells the banner when the player drives wrong way.")]
         public WrongWayTracker wrongWayTracker;
         public WrongWayBanner wrongWayBanner;
+        [Tooltip("Optional. When the scene has a MatchManager, the HUD shows its time, points and results.")]
+        public MatchManager matchManager;
+        public MatchHud matchHud;
 
         [Header("Setup")]
         [Tooltip("ON (single player / existing scenes): empty parts above are searched for in the scene once, at startup. " +
@@ -56,6 +59,7 @@ namespace VehicleSystem
         public bool createPickupHud = true;
         [Tooltip("Create the wrong-way banner when the scene has a WrongWayTracker.")]
         public bool createWrongWayBanner = true;
+        public bool createMatchHud = true;
 
         [Header("Vehicle")]
         [Tooltip("Attached on Start. Leave empty to attach nothing (a spawner calls Attach later).")]
@@ -92,6 +96,8 @@ namespace VehicleSystem
                 if (road == null) road = FindFirstObjectByType<RoadGenerator>();
                 if (wrongWayTracker == null) wrongWayTracker = FindFirstObjectByType<WrongWayTracker>();
                 if (wrongWayBanner == null) wrongWayBanner = FindFirstObjectByType<WrongWayBanner>();
+                if (matchManager == null) matchManager = FindFirstObjectByType<MatchManager>();
+                if (matchHud == null) matchHud = FindFirstObjectByType<MatchHud>();
             }
 
             if (input == null) input = gameObject.AddComponent<LocalPlayerInput>();
@@ -114,6 +120,10 @@ namespace VehicleSystem
             if (createWrongWayBanner && wrongWayBanner == null && wrongWayTracker != null)
                 wrongWayBanner = new GameObject("Wrong Way Banner").AddComponent<WrongWayBanner>();
             if (wrongWayBanner != null) wrongWayBanner.SetTracker(wrongWayTracker);
+
+            if (createMatchHud && matchHud == null && matchManager != null)
+                matchHud = new GameObject("Match HUD").AddComponent<MatchHud>();
+            if (matchHud != null) matchHud.SetMatch(matchManager);
 
             // hand the parts to each other, so none of them has to search
             if (input.mobile == null) input.mobile = mobile;

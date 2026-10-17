@@ -154,6 +154,7 @@ namespace VehicleSystem
         float flippedTimer, stuckTimer, cooldownTimer, safeTimer, lastDriveSign;
         float blockedTimer, airTimer;
         VehicleHealth health;
+        VehicleDriver driver;
         struct SafePlace { public Vector3 position; public Quaternion rotation; public float time; }
         readonly List<SafePlace> safePlaces = new List<SafePlace>();
 
@@ -210,6 +211,9 @@ namespace VehicleSystem
         /// </summary>
         public bool RecoverManual()
         {
+            if (driver == null) TryGetComponent(out driver);
+            if (driver != null && !driver.inputEnabled) return false; // countdown, match over, destroyed
+
             bool safe = IsInSafePlace();
             if (health == null) TryGetComponent(out health);
             bool hurt = health != null && health.Health01 < 0.999f;
