@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1f85ffac87f8f7a4b946c41aef789b07, type: 3}
-  m_Name: Day
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimeToon.AnimeStylePreset
   sunColor: {r: 1, g: 0.96, b: 0.88, a: 1}
   sunIntensity: 1.1
@@ -25,3 +25,12 @@ MonoBehaviour:
   nightAmount: 0
   lightIntensityOffset: 0
   rimBoost: 0
+  skyZenith: {r: 0.25, g: 0.5, b: 0.95, a: 1}
+  skyHorizon: {r: 0.75, g: 0.9, b: 1, a: 1}
+  skyGround: {r: 0.55, g: 0.6, b: 0.7, a: 1}
+  horizonGlowColor: {r: 1, g: 0.85, b: 0.7, a: 1}
+  horizonGlowAmount: 0.15
+  cloudLit: {r: 1, g: 1, b: 1, a: 1}
+  cloudShadow: {r: 0.7, g: 0.78, b: 0.95, a: 1}
+  cloudCoverage: 0.5
+  starAmount: 0

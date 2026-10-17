@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: AnimeSky
+  m_Shader: {fileID: 4800000, guid: 2cedb2691e88a594e96e0d810170263d, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _CloudAmbientLight: 0.5
+    - _CloudCoverage: 0.5
+    - _CloudFadeHeight: 0.2
+    - _CloudHorizonOffset: 0.2
+    - _CloudLightOffset: 0.08
+    - _CloudLitThreshold: 0.35
+    - _CloudScale: 0.8
+    - _CloudSoftness: 0.05
+    - _CloudSpeed: 0.01
+    - _CloudToonSoftness: 0.08
+    - _GlowAmount: 0.1
+    - _GlowFalloff: 6
+    - _GlowSpread: 2
+    - _GradientPower: 0.7
+    - _GroundBlend: 3
+    - _HaloExponent: 40
+    - _HaloIntensity: 0.4
+    - _SkyBands: 0
+    - _StarAmount: 0
+    - _StarDensity: 0.04
+    - _StarIntensity: 1.5
+    - _StarScale: 60
+    - _SunIntensity: 3
+    - _SunSize: 0.002
+    - _SunSoftness: 0.1
+    m_Colors:
+    - _CloudLit: {r: 1, g: 1, b: 1, a: 1}
+    - _CloudShadow: {r: 0.7, g: 0.78, b: 0.95, a: 1}
+    - _CloudWindDir: {r: 1, g: 0.3, b: 0, a: 0}
+    - _GlowColor: {r: 1, g: 0.8, b: 0.6, a: 1}
+    - _GroundColor: {r: 0.54999995, g: 0.6, b: 0.7, a: 1}
+    - _HorizonColor: {r: 0.75, g: 0.9, b: 1, a: 1}
+    - _SunColor: {r: 1, g: 0.95, b: 0.85, a: 1}
+    - _ZenithColor: {r: 0.24999997, g: 0.5, b: 0.95, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

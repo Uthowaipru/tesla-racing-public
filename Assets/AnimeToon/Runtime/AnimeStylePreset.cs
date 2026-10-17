@@ -31,6 +31,17 @@ namespace AnimeToon
         [Range(-1f, 1f)] public float lightIntensityOffset = 0f;
         [Range(-1f, 3f)] public float rimBoost = 0f;
 
+        [Header("Sky (needs a skybox material using Anime/Sky)")]
+        public Color skyZenith = new Color(0.25f, 0.5f, 0.95f);
+        public Color skyHorizon = new Color(0.75f, 0.9f, 1f);
+        public Color skyGround = new Color(0.55f, 0.6f, 0.7f);
+        public Color horizonGlowColor = new Color(1f, 0.85f, 0.7f);
+        [Range(0f, 2f)] public float horizonGlowAmount = 0.15f;
+        public Color cloudLit = Color.white;
+        public Color cloudShadow = new Color(0.7f, 0.78f, 0.95f);
+        [Range(0f, 1f)] public float cloudCoverage = 0.5f;
+        [Range(0f, 1f)] public float starAmount = 0f;
+
         public struct Snapshot
         {
             public Color sunColor;
@@ -41,6 +52,11 @@ namespace AnimeToon
             public float fogDensity;
             public Color shadowTint;
             public float shadowTintAmount, nightAmount, lightIntensityOffset, rimBoost;
+            public Color skyZenith, skyHorizon, skyGround;
+            public Color horizonGlowColor;
+            public float horizonGlowAmount;
+            public Color cloudLit, cloudShadow;
+            public float cloudCoverage, starAmount;
 
             public static Snapshot Lerp(Snapshot a, Snapshot b, float t)
             {
@@ -58,6 +74,15 @@ namespace AnimeToon
                 s.nightAmount = Mathf.Lerp(a.nightAmount, b.nightAmount, t);
                 s.lightIntensityOffset = Mathf.Lerp(a.lightIntensityOffset, b.lightIntensityOffset, t);
                 s.rimBoost = Mathf.Lerp(a.rimBoost, b.rimBoost, t);
+                s.skyZenith = Color.Lerp(a.skyZenith, b.skyZenith, t);
+                s.skyHorizon = Color.Lerp(a.skyHorizon, b.skyHorizon, t);
+                s.skyGround = Color.Lerp(a.skyGround, b.skyGround, t);
+                s.horizonGlowColor = Color.Lerp(a.horizonGlowColor, b.horizonGlowColor, t);
+                s.horizonGlowAmount = Mathf.Lerp(a.horizonGlowAmount, b.horizonGlowAmount, t);
+                s.cloudLit = Color.Lerp(a.cloudLit, b.cloudLit, t);
+                s.cloudShadow = Color.Lerp(a.cloudShadow, b.cloudShadow, t);
+                s.cloudCoverage = Mathf.Lerp(a.cloudCoverage, b.cloudCoverage, t);
+                s.starAmount = Mathf.Lerp(a.starAmount, b.starAmount, t);
                 return s;
             }
         }
@@ -78,6 +103,15 @@ namespace AnimeToon
             s.nightAmount = nightAmount;
             s.lightIntensityOffset = lightIntensityOffset;
             s.rimBoost = rimBoost;
+            s.skyZenith = skyZenith;
+            s.skyHorizon = skyHorizon;
+            s.skyGround = skyGround;
+            s.horizonGlowColor = horizonGlowColor;
+            s.horizonGlowAmount = horizonGlowAmount;
+            s.cloudLit = cloudLit;
+            s.cloudShadow = cloudShadow;
+            s.cloudCoverage = cloudCoverage;
+            s.starAmount = starAmount;
             return s;
         }
     }

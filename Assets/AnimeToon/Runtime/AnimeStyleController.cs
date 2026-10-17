@@ -5,7 +5,7 @@ namespace AnimeToon
 {
     /// <summary>
     /// Blends between style presets (e.g. Day, Dusk, Night) and drives the sun, ambient,
-    /// fog and the global values the Anime toon shaders read. Works in edit mode too.
+    /// fog, sky and the global values the Anime toon shaders read. Works in edit mode too.
     /// Presets are spread evenly over timeOfDay 0..1.
     /// </summary>
     [ExecuteAlways]
@@ -30,13 +30,32 @@ namespace AnimeToon
         public bool controlAmbient = true;
         public bool controlFog = true;
 
+        [Header("Sky")]
+        [Tooltip("Material using the Anime/Sky shader. Assigned as the scene skybox if set.")]
+        public Material skyMaterial;
+        public bool controlSky = true;
+        [Tooltip("Re-bake skybox reflections every N seconds while playing (0 = never). Costs performance, keep it large or 0 on mobile.")]
+        [Min(0f)] public float reflectionUpdateSeconds = 0f;
+
         static readonly int ShadowTintId = Shader.PropertyToID("_Anime_ShadowTint");
         static readonly int ShadowTintAmountId = Shader.PropertyToID("_Anime_ShadowTintAmount");
         static readonly int NightAmountId = Shader.PropertyToID("_Anime_NightAmount");
         static readonly int LightOffsetId = Shader.PropertyToID("_Anime_LightIntensityOffset");
         static readonly int RimBoostId = Shader.PropertyToID("_Anime_RimBoost");
 
+        static readonly int SkyOverrideId = Shader.PropertyToID("_Anime_SkyOverride");
+        static readonly int SkyZenithId = Shader.PropertyToID("_Anime_SkyZenith");
+        static readonly int SkyHorizonId = Shader.PropertyToID("_Anime_SkyHorizon");
+        static readonly int SkyGroundId = Shader.PropertyToID("_Anime_SkyGround");
+        static readonly int HorizonGlowId = Shader.PropertyToID("_Anime_HorizonGlow");
+        static readonly int CloudLitId = Shader.PropertyToID("_Anime_CloudLit");
+        static readonly int CloudShadowId = Shader.PropertyToID("_Anime_CloudShadow");
+        static readonly int CloudCoverageId = Shader.PropertyToID("_Anime_CloudCoverage");
+        static readonly int StarAmountId = Shader.PropertyToID("_Anime_StarAmount");
+        static readonly int SunColorId = Shader.PropertyToID("_Anime_SunColor");
+
         float _direction = 1f;
+        float _reflectionTimer;
 
         void OnEnable() { Apply(); }
         void OnDisable() { ResetGlobals(); }
@@ -58,7 +77,18 @@ namespace AnimeToon
                     timeOfDay = Mathf.Repeat(timeOfDay + step, 1f);
                 }
             }
+
             Apply();
+
+            if (Application.isPlaying && controlSky && reflectionUpdateSeconds > 0f)
+            {
+                _reflectionTimer += Time.deltaTime;
+                if (_reflectionTimer >= reflectionUpdateSeconds)
+                {
+                    _reflectionTimer = 0f;
+                    DynamicGI.UpdateEnvironment();
+                }
+            }
         }
 
         public void SetTimeOfDay(float t)
@@ -99,6 +129,28 @@ namespace AnimeToon
                 RenderSettings.fogDensity = s.fogDensity;
             }
 
+            if (controlSky)
+            {
+                if (skyMaterial != null && RenderSettings.skybox != skyMaterial)
+                    RenderSettings.skybox = skyMaterial;
+
+                Shader.SetGlobalFloat(SkyOverrideId, 1f);
+                Shader.SetGlobalColor(SkyZenithId, s.skyZenith);
+                Shader.SetGlobalColor(SkyHorizonId, s.skyHorizon);
+                Shader.SetGlobalColor(SkyGroundId, s.skyGround);
+                Shader.SetGlobalVector(HorizonGlowId, new Vector4(
+                    s.horizonGlowColor.r, s.horizonGlowColor.g, s.horizonGlowColor.b, s.horizonGlowAmount));
+                Shader.SetGlobalColor(CloudLitId, s.cloudLit);
+                Shader.SetGlobalColor(CloudShadowId, s.cloudShadow);
+                Shader.SetGlobalFloat(CloudCoverageId, s.cloudCoverage);
+                Shader.SetGlobalFloat(StarAmountId, s.starAmount);
+                Shader.SetGlobalColor(SunColorId, s.sunColor);
+            }
+            else
+            {
+                Shader.SetGlobalFloat(SkyOverrideId, 0f);
+            }
+
             Shader.SetGlobalColor(ShadowTintId, s.shadowTint);
             Shader.SetGlobalFloat(ShadowTintAmountId, s.shadowTintAmount);
             Shader.SetGlobalFloat(NightAmountId, s.nightAmount);
@@ -111,7 +163,6 @@ namespace AnimeToon
             result = default;
             if (presets == null) return false;
 
-            // ignore empty slots
             int count = 0;
             for (int i = 0; i < presets.Length; i++) if (presets[i] != null) count++;
             if (count == 0) return false;
@@ -135,6 +186,7 @@ namespace AnimeToon
             Shader.SetGlobalFloat(NightAmountId, 0f);
             Shader.SetGlobalFloat(LightOffsetId, 0f);
             Shader.SetGlobalFloat(RimBoostId, 0f);
+            Shader.SetGlobalFloat(SkyOverrideId, 0f);
         }
     }
 }

@@ -121,10 +121,13 @@ Material:
     m_Floats:
     - _AOStrength: 1
     - _AddPrecomputedVelocity: 0
+    - _AdditionalLightIntensity: 1
+    - _AdditionalLightSoftness: 0.15
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _AmbientInfluence: 0.3
     - _AnisoSpec: 0
+    - _BaseAlpha: 0.4
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BrushScale: 4
@@ -132,6 +135,16 @@ Material:
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
+    - _CloudAmbientLight: 0.5
+    - _CloudCoverage: 0.5
+    - _CloudFadeHeight: 0.2
+    - _CloudHorizonOffset: 0.2
+    - _CloudLightOffset: 0.08
+    - _CloudLitThreshold: 0.35
+    - _CloudScale: 0.8
+    - _CloudSoftness: 0.05
+    - _CloudSpeed: 0.01
+    - _CloudToonSoftness: 0.08
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
@@ -139,31 +152,58 @@ Material:
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
+    - _FacadeOn: 0
     - _FaceSuppress: 0.9
+    - _FloorHeight: 3
+    - _FresnelAlpha: 0.5
+    - _FresnelPower: 3
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _GlowAmount: 0.1
+    - _GlowFalloff: 6
+    - _GlowSpread: 2
+    - _GradientMaxY: 20
+    - _GradientMinY: 0
+    - _GradientPower: 0.7
+    - _GradientStrength: 0.5
+    - _GroundBlend: 3
+    - _HaloExponent: 40
+    - _HaloIntensity: 0.4
+    - _LedgeDarken: 0.25
+    - _LedgeThickness: 0.08
     - _LightIntensity: 0.85
+    - _LitRatio: 0.4
     - _Max: 1
     - _Metalic: 0
     - _Metallic: 0
     - _Min: 0.3
+    - _NightAmount: 0
+    - _NoiseScale: 0.4
+    - _NoiseStrength: 0.15
     - _OcclusionStrength: 1
-    - _OutlineBaseTint: 0.6
-    - _OutlineDistMax: 15
-    - _OutlineDistMin: 1
-    - _OutlineWidth: 1.5
+    - _OutlineBaseTint: 0.021
+    - _OutlineDistMax: 26.62
+    - _OutlineDistMin: 18.6
+    - _OutlineWidth: 6
     - _Parallax: 0.005
+    - _ProbeBlend: 0.8
+    - _ProbeRoughness: 0.15
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadow: 1
     - _ReceiveShadows: 1
+    - _ReflectionBoost: 1.2
+    - _ReflectionStrength: 0.55
+    - _RimGroundFade: 1
     - _RimIntensity: 0.4
     - _RimSoftness: 0.1
     - _RimWidth: 0.6
     - _Shades: 0.49
+    - _SkyBands: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
+    - _Softness: 0.05
     - _SoftnessMax: 0.08
     - _SoftnessMin: 0.01
     - _SpecExpHigh: 200
@@ -178,33 +218,72 @@ Material:
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
+    - _StarAmount: 0
+    - _StarDensity: 0.04
+    - _StarIntensity: 1.5
+    - _StarScale: 60
+    - _StreakIntensity: 0.5
+    - _StreakParallax: 0.5
+    - _StreakScale: 2
+    - _StreakSoftness: 0.02
+    - _StreakWidth: 0.12
     - _StrokeBlendingNoiseScale: 500
     - _StrokeBlendingNoiseStrength: 0.15
     - _StrokeRandomness: 1
     - _StrokeScale: 5
+    - _SunExponent: 60
+    - _SunIntensity: 3
+    - _SunSize: 0.002
+    - _SunSoftness: 0.1
+    - _SunThreshold: 0.6
     - _Surface: 0
+    - _Threshold: 0.5
     - _Threshold1: 0.5
     - _Threshold2: 0.25
     - _UseBlendingNoise: 1
     - _UseFaceMask: 0
     - _Variation: 0.1
+    - _VertexAOStrength: 0
+    - _WindowEmission: 2
+    - _WindowSpacing: 2.5
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     - _outline: 0
     m_Colors:
+    - _AOColor: {r: 0.5, g: 0.41999996, b: 0.72, a: 1}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _BrushWeights: {r: 1, g: 0, b: 0, a: 0}
+    - _CloudLit: {r: 1, g: 1, b: 1, a: 1}
+    - _CloudShadow: {r: 0.7, g: 0.78, b: 0.95, a: 1}
+    - _CloudWindDir: {r: 1, g: 0.3, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _FacadeOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _GlassTint: {r: 0.34999996, g: 0.6, b: 0.85, a: 1}
+    - _GlassTopTint: {r: 0.75, g: 0.9, b: 1, a: 1}
+    - _GlowColor: {r: 1, g: 0.8, b: 0.6, a: 1}
+    - _GradientBottomColor: {r: 0.75, g: 0.65, b: 0.9, a: 1}
+    - _GradientTopColor: {r: 1, g: 1, b: 1, a: 1}
+    - _GroundColor: {r: 0.54999995, g: 0.6, b: 0.7, a: 1}
+    - _HorizonColor: {r: 0.75, g: 0.9, b: 1, a: 1}
     - _LitTint: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 1, g: 0.95, b: 0.9, a: 1}
+    - _ShadowTint: {r: 0.62, g: 0.54999995, b: 0.85, a: 1}
     - _ShadowTint1: {r: 0.85, g: 0.78, b: 0.92, a: 1}
     - _ShadowTint2: {r: 0.6, g: 0.5, b: 0.8, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
+    - _StreakColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SunColor: {r: 1, g: 0.95, b: 0.85, a: 1}
     - _VariationColorA: {r: 0, g: 0, b: 0, a: 0}
     - _VariationColorB: {r: 1, g: 1, b: 1, a: 0}
+    - _WindowBottomColor: {r: 0.24999997, g: 0.34999996, b: 0.6, a: 1}
+    - _WindowLitColor: {r: 1, g: 0.85, b: 0.5, a: 1}
+    - _WindowOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _WindowSize: {r: 0.55, g: 0.6, b: 0, a: 0}
+    - _WindowTopColor: {r: 0.65, g: 0.85, b: 1, a: 1}
+    - _ZenithColor: {r: 0.24999997, g: 0.5, b: 0.95, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

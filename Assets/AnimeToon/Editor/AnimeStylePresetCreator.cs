@@ -1,22 +1,37 @@
 // Place in an "Editor" folder.
-// Menu: Tools > Anime Toon > Create Default Style Presets
-// Creates Day, Dusk and Night presets in Assets/AnimeToon/Presets.
+// Tools > Anime Toon > Create Default Style Presets            (never overwrites)
+// Tools > Anime Toon > Reset Default Style Presets (Overwrite)  (restores Day/Dusk/Night values)
+// Tools > Anime Toon > Create Sky Material                      (Anime/Sky material, set as skybox)
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace AnimeToon.Editor
 {
     public static class AnimeStylePresetCreator
     {
         const string Root = "Assets/AnimeToon";
-        const string Folder = "Assets/AnimeToon/Presets";
+        const string PresetFolder = "Assets/AnimeToon/Presets";
+        const string MaterialFolder = "Assets/AnimeToon/Materials";
 
         [MenuItem("Tools/Anime Toon/Create Default Style Presets")]
-        static void Create()
+        static void CreateMenu() { Run(false); }
+
+        [MenuItem("Tools/Anime Toon/Reset Default Style Presets (Overwrite)")]
+        static void ResetMenu()
         {
-            if (!AssetDatabase.IsValidFolder(Root)) AssetDatabase.CreateFolder("Assets", "AnimeToon");
-            if (!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder(Root, "Presets");
+            if (!EditorUtility.DisplayDialog("Reset Day / Dusk / Night presets",
+                "This overwrites any changes you made to the Day, Dusk and Night presets in " + PresetFolder + ".",
+                "Overwrite", "Cancel")) return;
+            Run(true);
+        }
+
+        static void Run(bool overwrite)
+        {
+            EnsureFolder(Root, "Assets", "AnimeToon");
+            EnsureFolder(PresetFolder, Root, "Presets");
 
             var day = Make("Day", p =>
             {
@@ -33,7 +48,16 @@ namespace AnimeToon.Editor
                 p.nightAmount = 0f;
                 p.lightIntensityOffset = 0f;
                 p.rimBoost = 0f;
-            });
+                p.skyZenith = new Color(0.25f, 0.5f, 0.95f);
+                p.skyHorizon = new Color(0.75f, 0.9f, 1f);
+                p.skyGround = new Color(0.55f, 0.6f, 0.7f);
+                p.horizonGlowColor = new Color(1f, 0.85f, 0.7f);
+                p.horizonGlowAmount = 0.15f;
+                p.cloudLit = new Color(1f, 1f, 1f);
+                p.cloudShadow = new Color(0.7f, 0.78f, 0.95f);
+                p.cloudCoverage = 0.5f;
+                p.starAmount = 0f;
+            }, overwrite);
 
             var dusk = Make("Dusk", p =>
             {
@@ -50,7 +74,16 @@ namespace AnimeToon.Editor
                 p.nightAmount = 0.35f;
                 p.lightIntensityOffset = 0f;
                 p.rimBoost = 0.6f;
-            });
+                p.skyZenith = new Color(0.28f, 0.25f, 0.6f);
+                p.skyHorizon = new Color(1f, 0.6f, 0.5f);
+                p.skyGround = new Color(0.4f, 0.3f, 0.5f);
+                p.horizonGlowColor = new Color(1f, 0.55f, 0.35f);
+                p.horizonGlowAmount = 0.9f;
+                p.cloudLit = new Color(1f, 0.75f, 0.7f);
+                p.cloudShadow = new Color(0.5f, 0.38f, 0.7f);
+                p.cloudCoverage = 0.55f;
+                p.starAmount = 0.2f;
+            }, overwrite);
 
             var night = Make("Night", p =>
             {
@@ -67,12 +100,20 @@ namespace AnimeToon.Editor
                 p.nightAmount = 1f;
                 p.lightIntensityOffset = 0f;
                 p.rimBoost = 1.2f;
-            });
+                p.skyZenith = new Color(0.04f, 0.05f, 0.18f);
+                p.skyHorizon = new Color(0.18f, 0.2f, 0.45f);
+                p.skyGround = new Color(0.06f, 0.06f, 0.15f);
+                p.horizonGlowColor = new Color(0.4f, 0.45f, 1f);
+                p.horizonGlowAmount = 0.1f;
+                p.cloudLit = new Color(0.5f, 0.55f, 0.85f);
+                p.cloudShadow = new Color(0.18f, 0.2f, 0.4f);
+                p.cloudCoverage = 0.4f;
+                p.starAmount = 1f;
+            }, overwrite);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            // if a controller is selected, fill its preset list
             if (Selection.activeGameObject != null)
             {
                 var c = Selection.activeGameObject.GetComponent<AnimeStyleController>();
@@ -88,16 +129,69 @@ namespace AnimeToon.Editor
             EditorGUIUtility.PingObject(day);
         }
 
-        static AnimeStylePreset Make(string name, System.Action<AnimeStylePreset> setup)
+        [MenuItem("Tools/Anime Toon/Create Sky Material")]
+        static void CreateSky()
         {
-            string path = $"{Folder}/{name}.asset";
-            var existing = AssetDatabase.LoadAssetAtPath<AnimeStylePreset>(path);
-            if (existing != null) return existing; // never overwrite your tweaked presets
+            Shader shader = Shader.Find("Anime/Sky");
+            if (shader == null)
+            {
+                Debug.LogError("Shader 'Anime/Sky' not found. Make sure AnimeSky.shader is in the project and compiled.");
+                return;
+            }
 
-            var p = ScriptableObject.CreateInstance<AnimeStylePreset>();
-            setup(p);
-            AssetDatabase.CreateAsset(p, path);
-            return p;
+            EnsureFolder(Root, "Assets", "AnimeToon");
+            EnsureFolder(MaterialFolder, Root, "Materials");
+
+            string path = MaterialFolder + "/AnimeSky.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(shader) { name = "AnimeSky" };
+                AssetDatabase.CreateAsset(mat, path);
+            }
+
+            RenderSettings.skybox = mat;
+
+            var controller = Object.FindFirstObjectByType<AnimeStyleController>();
+            if (controller != null)
+            {
+                Undo.RecordObject(controller, "Assign Sky Material");
+                controller.skyMaterial = mat;
+                EditorUtility.SetDirty(controller);
+            }
+
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            AssetDatabase.SaveAssets();
+            Selection.activeObject = mat;
+            EditorGUIUtility.PingObject(mat);
+        }
+
+        static void EnsureFolder(string path, string parent, string name)
+        {
+            if (!AssetDatabase.IsValidFolder(path)) AssetDatabase.CreateFolder(parent, name);
+        }
+
+        static AnimeStylePreset Make(string name, System.Action<AnimeStylePreset> setup, bool overwrite)
+        {
+            string path = $"{PresetFolder}/{name}.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<AnimeStylePreset>(path);
+
+            var temp = ScriptableObject.CreateInstance<AnimeStylePreset>();
+            setup(temp);
+
+            if (existing != null)
+            {
+                if (overwrite)
+                {
+                    EditorUtility.CopySerialized(temp, existing);
+                    EditorUtility.SetDirty(existing);
+                }
+                Object.DestroyImmediate(temp);
+                return existing;
+            }
+
+            AssetDatabase.CreateAsset(temp, path);
+            return temp;
         }
     }
 }

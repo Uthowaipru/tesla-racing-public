@@ -17,6 +17,7 @@ AnimeToon/
     Environment/AnimeEnvironmentToon.shader Anime/EnvironmentToon
     Environment/AnimeGlass.shader           Anime/Glass
     Environment/AnimeWater.shader           Anime/Water
+    Sky/AnimeSky.shader                     Anime/Sky
   Runtime/
     AnimeStylePreset.cs                     one mood (Day / Dusk / Night)
     AnimeStyleController.cs                 blends presets, drives sun/ambient/fog + shader globals
@@ -34,8 +35,12 @@ AnimeToon/
   Alpha Clipping + Cull Off for leaf cards. Leave Vertex AO Strength at 0 unless the mesh has baked AO.
 - **Glass:** `Anime/Glass`. Reflects the skybox / reflection probe (Generate Lighting if it looks black).
 - **Water:** `Anime/Water`. Enable Depth Texture in the URP asset.
+- **Sky:** Tools > Anime Toon > Create Sky Material (sets it as the skybox). With an
+  `AnimeStyleController` in the scene the sky colors, clouds, glow and stars follow the presets.
 - **Mood:** add an empty GameObject with `AnimeStyleController`, assign your Directional Light,
   run Tools > Anime Toon > Create Default Style Presets, then scrub Time Of Day.
+  If you made presets with an older version, run Tools > Anime Toon > Reset Default Style Presets (Overwrite)
+  so they get the new sky values.
 
 ## URP requirements
 - Additional Lights: Per Pixel (point/spot lights on toon materials).
