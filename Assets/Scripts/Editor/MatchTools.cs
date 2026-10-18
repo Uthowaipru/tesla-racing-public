@@ -34,6 +34,50 @@ namespace VehicleSystem.EditorTools
             Selection.activeGameObject = go;
         }
 
+        [MenuItem("Tools/Vehicle/Generate Match Results UI")]
+        static void ResultsFromToolsMenu() => BuildResults(null);
+
+        [MenuItem("GameObject/Vehicle/Match Results UI", false, 35)]
+        static void ResultsFromHierarchyMenu() => BuildResults(null);
+
+        public static void BuildResults(MatchResultsFlow target)
+        {
+            var flow = target != null ? target : Object.FindFirstObjectByType<MatchResultsFlow>();
+
+            if (flow != null && flow.uiRoot != null)
+            {
+                if (flow.uiRoot == flow.gameObject)
+                {
+                    EditorUtility.DisplayDialog("Match Results",
+                        "Ui Root points at the Match Results object itself. Clear that field or point it at a child object, then try again.", "OK");
+                    return;
+                }
+
+                if (!EditorUtility.DisplayDialog("Match Results",
+                        "A results UI already exists. Rebuild it from scratch?\nAny changes you made to it will be lost.", "Rebuild", "Cancel"))
+                    return;
+
+                Undo.DestroyObjectImmediate(flow.uiRoot);
+            }
+
+            if (flow == null)
+            {
+                var go = new GameObject("Match Results");
+                Undo.RegisterCreatedObjectUndo(go, "Create Match Results");
+                flow = Undo.AddComponent<MatchResultsFlow>(go);
+            }
+
+            Undo.RecordObject(flow, "Generate Match Results UI");
+            flow.BuildUI();
+            Undo.RegisterCreatedObjectUndo(flow.uiRoot, "Create Match Results UI");
+
+            EditorUtility.SetDirty(flow);
+            if (flow.gameObject.scene.IsValid()) EditorSceneManager.MarkSceneDirty(flow.gameObject.scene);
+
+            Selection.activeGameObject = flow.uiRoot;
+            EditorGUIUtility.PingObject(flow.uiRoot);
+        }
+
         [MenuItem("Tools/Vehicle/Generate Match HUD UI")]
         static void CreateFromToolsMenu() => BuildHud(null);
 
@@ -99,6 +143,32 @@ namespace VehicleSystem.EditorTools
                 EditorGUILayout.HelpBox("The results screen is switched off in the editor; switch 'Results Panel' on to restyle it, then off again.", MessageType.None);
                 if (GUILayout.Button("Select UI Root")) { Selection.activeGameObject = hud.uiRoot; EditorGUIUtility.PingObject(hud.uiRoot); }
                 if (GUILayout.Button("Rebuild Default UI (replaces your edits)")) MatchTools.BuildHud(hud);
+            }
+        }
+    }
+
+    [CustomEditor(typeof(MatchResultsFlow))]
+    public class MatchResultsFlowEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            DrawDefaultInspector();
+
+            var flow = (MatchResultsFlow)target;
+            EditorGUILayout.Space();
+
+            if (flow.uiRoot == null)
+            {
+                EditorGUILayout.HelpBox("No UI assigned. A default one is built at runtime. Generate it now to edit it in the Hierarchy / Canvas.", MessageType.Info);
+                if (GUILayout.Button("Generate Editable UI", GUILayout.Height(28))) MatchTools.BuildResults(flow);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    "Three screens (cutscene, leaderboard, rewards) are switched off in the editor: switch one on to restyle it, then off again. " +
+                    "For your own winner cutscene, subscribe to CutsceneRequested in code.", MessageType.None);
+                if (GUILayout.Button("Select UI Root")) { Selection.activeGameObject = flow.uiRoot; EditorGUIUtility.PingObject(flow.uiRoot); }
+                if (GUILayout.Button("Rebuild Default UI (replaces your edits)")) MatchTools.BuildResults(flow);
             }
         }
     }

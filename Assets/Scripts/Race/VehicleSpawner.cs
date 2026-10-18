@@ -100,6 +100,8 @@ namespace VehicleSystem
             BotSettings settings = botDifficulty == BotDifficulty.Custom ? customBotSettings : BotSettings.Preset(botDifficulty);
             int seed = road.Seed + slot.slotId * 7919;
 
+            road.AddTarget(car.transform); // the road is built around the bots too, so they never drive off its end
+
             var bot = car.gameObject.AddComponent<BotInput>();
             bot.Configure(settings, road, traffic, seed);
 
@@ -175,7 +177,7 @@ namespace VehicleSystem
 
             if (slot.controller == SlotController.AI) AddBotDriver(car, slot);
 
-            if (match != null) match.RegisterPlayer(car, slot.displayName, slot.controller == SlotController.LocalHuman);
+            if (match != null) match.RegisterPlayer(car, slot.displayName, slot.controller == SlotController.LocalHuman, def);
 
             return car;
         }

@@ -82,6 +82,13 @@ namespace VehicleSystem
         [Tooltip("Meters ahead or behind a rival you must be before the order counts as changed.")]
         public float overtakeMargin = 2f;
         [Range(10f, 80f)] public float rammedAreaHalfAngle = 40f;
+        [Tooltip("ON: a rival hit by another racer's nose at this speed tier or faster is DESTROYED, and the rammer is not hurt and is paid. OFF: rams only damage.")]
+        public bool rivalKills = true;
+        public SpeedTier rivalKillTier = SpeedTier.FullThrottle;
+        [Tooltip("Nose to nose: the faster racer wins (survives, is paid this many points), the other is destroyed.")]
+        public int headOnWinPoints = 30;
+        [Tooltip("If both are within this share of top speed of each other nobody wins and the normal damage rules apply.")]
+        [Range(0f, 0.5f)] public float headOnSpeedMargin = 0.1f;
 
         [Header("Penalty")]
         public int destroyedPenalty = 50;
@@ -132,12 +139,12 @@ namespace VehicleSystem
         // ------------------------------------------------------------------ players
 
         /// <summary>Adds a vehicle to the match (call it once per vehicle, when it spawns).</summary>
-        public MatchPlayer RegisterPlayer(VehicleController vehicle, string playerName, bool isLocal)
+        public MatchPlayer RegisterPlayer(VehicleController vehicle, string playerName, bool isLocal, VehicleDefinition definition = null)
         {
             if (vehicle == null) return null;
             if (byVehicle.TryGetValue(vehicle, out var existing)) return existing;
 
-            var player = new MatchPlayer { id = nextId++, name = playerName, vehicle = vehicle, isLocal = isLocal };
+            var player = new MatchPlayer { id = nextId++, name = playerName, vehicle = vehicle, isLocal = isLocal, definition = definition };
             vehicle.TryGetComponent(out player.sensor);
             vehicle.TryGetComponent(out player.health);
             vehicle.TryGetComponent(out player.driver);
@@ -157,8 +164,32 @@ namespace VehicleSystem
             byVehicle[vehicle] = player;
             if (isLocal) LocalPlayer = player;
 
+            Hook(player);
             SetInput(player, State == MatchState.Running);
             return player;
+        }
+
+        /// <summary>
+        /// Connects a racer to the match rules and the road: the road is built around it, a respawn never lands off the road, and
+        /// rams between racers are decided here.
+        /// </summary>
+        void Hook(MatchPlayer player)
+        {
+            if (player.health != null) player.health.impactResolver = info => ResolveImpact(player, info);
+
+            if (road == null) return;
+            road.AddTarget(player.vehicle.transform);
+            if (player.vehicle.TryGetComponent(out VehicleRecovery recovery))
+            {
+                recovery.isPositionSafe = road.IsOnRoad;
+                recovery.fallbackPose = road.GetRoadPoseNear;
+            }
+        }
+
+        void Unhook(MatchPlayer player)
+        {
+            if (player.health != null) player.health.impactResolver = null;
+            if (road != null) road.RemoveTarget(player.vehicle.transform);
         }
 
         public void UnregisterPlayer(VehicleController vehicle)
@@ -168,6 +199,7 @@ namespace VehicleSystem
             if (player.sensor != null && player.impactHandler != null) player.sensor.Impact -= player.impactHandler;
             if (player.health != null && player.destroyedHandler != null) player.health.Destroyed -= player.destroyedHandler;
 
+            Unhook(player);
             players.Remove(player);
             byVehicle.Remove(vehicle);
             if (LocalPlayer == player) LocalPlayer = null;
@@ -176,6 +208,14 @@ namespace VehicleSystem
         static void SetInput(MatchPlayer player, bool enabled)
         {
             if (player.driver != null) player.driver.inputEnabled = enabled;
+        }
+
+        /// <summary>Everybody, best first: most points, then the longest distance.</summary>
+        public List<MatchPlayer> GetRanking()
+        {
+            var ranking = new List<MatchPlayer>(players);
+            ranking.Sort((a, b) => a.points != b.points ? b.points.CompareTo(a.points) : b.distance.CompareTo(a.distance));
+            return ranking;
         }
 
         /// <summary>1 = the most points.</summary>
@@ -200,6 +240,8 @@ namespace VehicleSystem
                 var rig = FindFirstObjectByType<LocalPlayerRig>();
                 if (rig != null && rig.Vehicle != null) RegisterPlayer(rig.Vehicle, "You", true);
             }
+
+            for (int i = 0; i < players.Count; i++) Hook(players[i]); // those that joined before the road was found
 
             if (wrongWayTracker != null)
             {
@@ -418,7 +460,6 @@ namespace VehicleSystem
             if (info.otherVehicle != null && byVehicle.TryGetValue(info.otherVehicle, out MatchPlayer rival) && rival != player)
             {
                 if (info.zone != HitZone.Front) return;
-                if (Vector3.Dot(player.vehicle.transform.forward, rival.vehicle.transform.forward) < 0.3f) return; // head-on: no reward
                 if (OwnTier(player) == SpeedTier.Cruising) return;
 
                 int key = PairKey(player, rival, 0);
@@ -428,8 +469,16 @@ namespace VehicleSystem
                 Vector3 n = rival.vehicle.transform.InverseTransformDirection(info.normal);
                 float limit = Mathf.Cos(rammedAreaHalfAngle * Mathf.Deg2Rad);
                 int points = 0;
-                if (-n.z >= limit) points = rearRamPoints;
-                else if (Mathf.Abs(n.z) < limit) points = sideRamPoints;
+                if (n.z >= limit)
+                {
+                    // nose to nose: only the winner (see ResolveImpact) is paid
+                    if (ResolveImpact(player, info) == ImpactVerdict.Immune) points = headOnWinPoints;
+                }
+                else if (Vector3.Dot(player.vehicle.transform.forward, rival.vehicle.transform.forward) >= 0.3f)
+                {
+                    if (-n.z >= limit) points = rearRamPoints;
+                    else if (Mathf.Abs(n.z) < limit) points = sideRamPoints;
+                }
                 if (points <= 0) return;
 
                 pairCooldown[key] = Time.time + ramCooldown;
@@ -438,15 +487,54 @@ namespace VehicleSystem
             }
         }
 
-        SpeedTier OwnTier(MatchPlayer player)
+        float OwnSpeedRatio(MatchPlayer player)
         {
             float top = player.vehicle.Stats != null ? player.vehicle.Stats.Get(VehicleStat.MaxSpeed) / 3.6f : 15f;
             float speed = Mathf.Max(player.previousSpeed, Mathf.Abs(player.vehicle.ForwardSpeed)); // before the crash, and now
-            float ratio = speed / Mathf.Max(1f, top);
+            return speed / Mathf.Max(1f, top);
+        }
 
+        SpeedTier OwnTier(MatchPlayer player)
+        {
+            float ratio = OwnSpeedRatio(player);
             float fast = player.sensor != null ? player.sensor.fastFrom : 0.5f;
             float full = player.sensor != null ? player.sensor.fullThrottleFrom : 0.8f;
             return ratio >= full ? SpeedTier.FullThrottle : ratio >= fast ? SpeedTier.Fast : SpeedTier.Cruising;
+        }
+
+        /// <summary>
+        /// What happens to "me" when I touch another racer, decided from the geometry and the speeds (so both vehicles reach the same
+        /// answer): the one whose NOSE hits the other at high speed wins (not hurt), the one that is hit is destroyed. Nose to nose
+        /// the faster one wins. NPC traffic and walls keep the normal damage rules.
+        /// </summary>
+        ImpactVerdict ResolveImpact(MatchPlayer me, ImpactInfo info)
+        {
+            if (!rivalKills || State != MatchState.Running) return ImpactVerdict.Normal;
+            if (info.otherVehicle == null || !byVehicle.TryGetValue(info.otherVehicle, out MatchPlayer other) || other == me) return ImpactVerdict.Normal;
+
+            // which part of the OTHER vehicle was touched, in its own frame
+            Vector3 n = other.vehicle.transform.InverseTransformDirection(info.normal);
+            float limit = Mathf.Cos(rammedAreaHalfAngle * Mathf.Deg2Rad);
+            bool theirNose = n.z >= limit;
+            bool myNose = info.zone == HitZone.Front;
+
+            if (myNose && !theirNose)
+                return OwnTier(me) >= rivalKillTier ? ImpactVerdict.Immune : ImpactVerdict.Normal;   // I rammed them
+
+            if (theirNose && !myNose)
+                return OwnTier(other) >= rivalKillTier ? ImpactVerdict.Kill : ImpactVerdict.Normal;  // they rammed me
+
+            if (myNose && theirNose)
+            {
+                float mine = OwnSpeedRatio(me), theirs = OwnSpeedRatio(other);
+                if (Mathf.Abs(mine - theirs) <= headOnSpeedMargin) return ImpactVerdict.Normal;      // too close to call
+
+                MatchPlayer winner = mine > theirs ? me : other;
+                if (OwnTier(winner) < rivalKillTier) return ImpactVerdict.Normal;
+                return winner == me ? ImpactVerdict.Immune : ImpactVerdict.Kill;
+            }
+
+            return ImpactVerdict.Normal; // side against side, tail against tail
         }
 
         void RegisterChain(MatchPlayer player)

@@ -242,7 +242,7 @@ namespace VehicleSystem
             if (cleanTimer > 0f || road == null) return;
             cleanTimer = 0.5f;
 
-            float behindLimit = road.PlayerS - despawnBehind;
+            float behindLimit = road.RearS - despawnBehind; // behind the last racer, so bots at the back still have traffic
             for (int i = active.Count - 1; i >= 0; i--)
             {
                 TrafficVehicle v = active[i];

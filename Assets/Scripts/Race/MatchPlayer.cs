@@ -9,6 +9,8 @@ namespace VehicleSystem
         public int id;
         public string name;
         public VehicleController vehicle;
+        /// <summary>The vehicle's data asset (name, icon, prefab): the winner cutscene shows it.</summary>
+        public VehicleDefinition definition;
         /// <summary>True for the vehicle this device's player drives.</summary>
         public bool isLocal;
 

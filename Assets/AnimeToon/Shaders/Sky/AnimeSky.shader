@@ -86,6 +86,7 @@ Shader "Anime/Sky"
 
             // Set by AnimeStyleController. _Anime_SkyOverride = 0 means use the material values.
             float  _Anime_SkyOverride;
+            float  _Anime_CloudQuality;   // 0 = full, 1 = simple, 2 = off (set by AnimeQuality)
             float4 _Anime_SkyZenith;
             float4 _Anime_SkyHorizon;
             float4 _Anime_SkyGround;
@@ -214,7 +215,7 @@ Shader "Anime/Sky"
                 float cloudFade = smoothstep(0.0, _CloudFadeHeight, y);
                 half cloudMask = 0.0h;
                 half3 cloudCol = 0.0h;
-                if (cloudFade > 0.001)
+                if (cloudFade > 0.001 && _Anime_CloudQuality < 1.5)
                 {
                     float2 wind = normalize(_CloudWindDir.xy + float2(1e-5, 0)) * (_Time.y * _CloudSpeed);
                     float2 cuv = dir.xz / (y + _CloudHorizonOffset);
@@ -222,7 +223,12 @@ Shader "Anime/Sky"
                     float th = lerp(0.72, 0.32, coverage);
                     float dens = SkyFbm(p);
                     cloudMask = smoothstep(th, th + _CloudSoftness, dens);
-                    if (cloudMask > 0.001h)
+                    if (cloudMask > 0.001h && _Anime_CloudQuality > 0.5)
+                    {
+                        // simple: one flat tone, no second noise lookup for the lit edge
+                        cloudCol = cloudLit;
+                    }
+                    else if (cloudMask > 0.001h)
                     {
                         float2 sunOff = normalize(sunDir.xz + float2(1e-5, 0)) * _CloudLightOffset;
                         float densSun = SkyFbm(p + sunOff);

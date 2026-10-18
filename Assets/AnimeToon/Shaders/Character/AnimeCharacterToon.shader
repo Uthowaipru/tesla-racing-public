@@ -111,6 +111,8 @@ Shader "Anime/CharacterToon"
         float  _Anime_NightAmount;
         float  _Anime_LightIntensityOffset;
         float  _Anime_RimBoost;
+        float  _Anime_LowQuality;   // 0 = full, 1 = simple shading (set by AnimeQuality)
+        float  _Anime_OutlineOff;   // 1 = no outlines (set by AnimeQuality)
         ENDHLSL
 
         // ------------------------------------------------------------
@@ -204,9 +206,12 @@ Shader "Anime/CharacterToon"
                 t *= ao;
 
                 // brush texture perturbs the ramp coordinate for a hand-painted feel
-                half4 brushSample = SAMPLE_TEXTURE2D(_BrushTex, sampler_BrushTex, IN.uv * _BrushScale);
-                half brush = dot(brushSample, _BrushWeights);
-                t += (brush - 0.5h) * _BrushStrength;
+                if (_Anime_LowQuality < 0.5)
+                {
+                    half4 brushSample = SAMPLE_TEXTURE2D(_BrushTex, sampler_BrushTex, IN.uv * _BrushScale);
+                    half brush = dot(brushSample, _BrushWeights);
+                    t += (brush - 0.5h) * _BrushStrength;
+                }
 
                 // face: suppress shading using vertex color G
                 #if defined(_USE_FACE_MASK)
@@ -317,7 +322,7 @@ Shader "Anime/CharacterToon"
             {
                 OVaryings OUT;
                 // width 0 fully disables the outline (otherwise back faces of open meshes show as black)
-                if (_OutlineWidth <= 0.0001h)
+                if (_OutlineWidth <= 0.0001h || _Anime_OutlineOff > 0.5)
                 {
                     OUT.positionCS = float4(0, 0, 0, 0);
                     OUT.uv = float2(0, 0);

@@ -98,6 +98,12 @@ namespace VehicleSystem
         /// </summary>
         public Func<Vector3, bool> isPositionSafe;
 
+        /// <summary>
+        /// Optional: where to put the vehicle when none of its remembered safe places can be used (for example it fell into the void
+        /// and the road behind it is gone). The road system supplies a place on the road.
+        /// </summary>
+        public Func<Vector3, Pose> fallbackPose;
+
         [Header("Safe Places (manual recovery and the Last Safe Point stuck mode)")]
         [Tooltip("How often a safe place is remembered while driving normally (seconds).")]
         public float safePointInterval = 1f;
@@ -269,6 +275,7 @@ namespace VehicleSystem
             {
                 SafePlace p = safePlaces[i];
                 if (now - p.time < safePointMinAge) continue;
+                if (isPositionSafe != null && !isPositionSafe(p.position)) continue; // that road piece may be gone
 
                 Vector3 spot = default;
                 if (IsClear(p.position, p.rotation)) spot = p.position;
@@ -280,7 +287,14 @@ namespace VehicleSystem
                 return;
             }
 
-            // nothing remembered yet: stand upright right here
+            // no usable safe place: a place on the road if the road system knows one, else stand upright right here
+            if (fallbackPose != null)
+            {
+                Pose pose = fallbackPose(transform.position);
+                Teleport(pose.position, pose.rotation);
+                return;
+            }
+
             PlaceOnGround(transform.position, FlatRotation());
         }
 

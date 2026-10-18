@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef7f4760d50e42f4f8ab0dcd9f1d578b, type: 3}
+  m_Name: AnimeQualitySettings
+  m_EditorClassIdentifier: Assembly-CSharp::AnimeToon.AnimeQualitySettings
+  low:
+    renderScale: 0.6
+    targetFps: 60
+    msaa: 1
+    hdr: 0
+    shadowDistance: 0
+    shadowCascades: 1
+    shadows: 0
+    maxAdditionalLights: 0
+    bloom: 0
+    outlines: 0
+    simpleShading: 1
+    cloudQuality: 1
+    textureMipLimit: 1
+    lodBias: 0.7
+    anisotropic: 0
+    particleScale: 0.4
+    skidMarks: 0
+    driftSparks: 0
+  medium:
+    renderScale: 0.8
+    targetFps: 60
+    msaa: 1
+    hdr: 1
+    shadowDistance: 25
+    shadowCascades: 1
+    shadows: 1
+    maxAdditionalLights: 2
+    bloom: 1
+    outlines: 1
+    simpleShading: 0
+    cloudQuality: 0
+    textureMipLimit: 0
+    lodBias: 1
+    anisotropic: 0
+    particleScale: 0.7
+    skidMarks: 1
+    driftSparks: 0
+  high:
+    renderScale: 1
+    targetFps: 90
+    msaa: 2
+    hdr: 1
+    shadowDistance: 50
+    shadowCascades: 2
+    shadows: 1
+    maxAdditionalLights: 4
+    bloom: 1
+    outlines: 1
+    simpleShading: 0
+    cloudQuality: 0
+    textureMipLimit: 0
+    lodBias: 1.3
+    anisotropic: 1
+    particleScale: 1
+    skidMarks: 1
+    driftSparks: 1

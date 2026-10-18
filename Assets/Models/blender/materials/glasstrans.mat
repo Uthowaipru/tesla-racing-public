@@ -44,7 +44,7 @@ Material:
     - _SunIntensity: 0.8
     - _SunThreshold: 0.6
     m_Colors:
-    - _GlassTint: {r: 0.34999996, g: 0.6, b: 0.85, a: 1}
+    - _GlassTint: {r: 0.35, g: 0.6, b: 0.85, a: 1}
     - _GlassTopTint: {r: 0.75, g: 0.9, b: 1, a: 1}
     - _HorizonColor: {r: 1, g: 0.85, b: 0.9, a: 1}
     - _StreakColor: {r: 1, g: 1, b: 1, a: 1}

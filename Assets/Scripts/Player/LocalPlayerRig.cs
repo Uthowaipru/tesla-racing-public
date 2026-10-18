@@ -44,6 +44,8 @@ namespace VehicleSystem
         [Tooltip("Optional. When the scene has a MatchManager, the HUD shows its time, points and results.")]
         public MatchManager matchManager;
         public MatchHud matchHud;
+        [Tooltip("The finish sequence: winner cutscene, leaderboard, rewards.")]
+        public MatchResultsFlow matchResults;
 
         [Header("Setup")]
         [Tooltip("ON (single player / existing scenes): empty parts above are searched for in the scene once, at startup. " +
@@ -60,6 +62,7 @@ namespace VehicleSystem
         [Tooltip("Create the wrong-way banner when the scene has a WrongWayTracker.")]
         public bool createWrongWayBanner = true;
         public bool createMatchHud = true;
+        public bool createMatchResults = true;
 
         [Header("Vehicle")]
         [Tooltip("Attached on Start. Leave empty to attach nothing (a spawner calls Attach later).")]
@@ -98,6 +101,7 @@ namespace VehicleSystem
                 if (wrongWayBanner == null) wrongWayBanner = FindFirstObjectByType<WrongWayBanner>();
                 if (matchManager == null) matchManager = FindFirstObjectByType<MatchManager>();
                 if (matchHud == null) matchHud = FindFirstObjectByType<MatchHud>();
+                if (matchResults == null) matchResults = FindFirstObjectByType<MatchResultsFlow>();
             }
 
             if (input == null) input = gameObject.AddComponent<LocalPlayerInput>();
@@ -124,6 +128,10 @@ namespace VehicleSystem
             if (createMatchHud && matchHud == null && matchManager != null)
                 matchHud = new GameObject("Match HUD").AddComponent<MatchHud>();
             if (matchHud != null) matchHud.SetMatch(matchManager);
+
+            if (createMatchResults && matchResults == null && matchManager != null)
+                matchResults = new GameObject("Match Results").AddComponent<MatchResultsFlow>();
+            if (matchResults != null) matchResults.SetMatch(matchManager);
 
             // hand the parts to each other, so none of them has to search
             if (input.mobile == null) input.mobile = mobile;

@@ -183,9 +183,11 @@ namespace VehicleSystem
 
             hudPanel.SetActive(active && state != MatchState.Waiting);
             centerText.gameObject.SetActive(active && state == MatchState.Countdown);
-            resultsPanel.SetActive(active && state == MatchState.Finished);
+            // the full flow (cutscene, leaderboard, rewards) replaces this simple results panel when it exists
+            bool simpleResults = active && state == MatchState.Finished && FindFirstObjectByType<MatchResultsFlow>() == null;
+            resultsPanel.SetActive(simpleResults);
 
-            if (active && state == MatchState.Finished) FillResults();
+            if (simpleResults) FillResults();
         }
 
         void FillResults()

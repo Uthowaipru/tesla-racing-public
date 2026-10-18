@@ -63,6 +63,12 @@ namespace VehicleSystem
         public event Action<ImpactInfo> Destroyed;
         public event Action Respawned;
 
+        /// <summary>
+        /// Optional: lets the match overrule the normal damage rules for an impact (for example a rammed rival is destroyed, the rammer
+        /// is not hurt). Return Normal to leave it to the rules here.
+        /// </summary>
+        public Func<ImpactInfo, ImpactVerdict> impactResolver;
+
         VehicleImpactSensor sensor;
         VehicleRecovery recovery;
         VehicleDriver driver;
@@ -109,6 +115,13 @@ namespace VehicleSystem
             if (IsDestroyed || IsInvulnerable || Time.time < nextHitTime) return;
             nextHitTime = Time.time + hitCooldown;
 
+            if (impactResolver != null)
+            {
+                ImpactVerdict verdict = impactResolver(info);
+                if (verdict == ImpactVerdict.Immune) return;
+                if (verdict == ImpactVerdict.Kill) { ApplyDamage(Health, info); return; }
+            }
+
             bool headOn = headOnKills && info.zone == HitZone.Front && info.tier >= headOnKillTier;
             if (headOn)
             {
@@ -119,6 +132,12 @@ namespace VehicleSystem
             float zone = info.zone == HitZone.Front ? frontMultiplier : info.zone == HitZone.Rear ? rearMultiplier : sideMultiplier;
             float amount = damageBySpeed.Evaluate(info.speedRatio) * maxHealth * zone;
             if (amount > 0.01f) ApplyDamage(amount, info);
+        }
+
+        /// <summary>Destroys the vehicle now (falling into the void, a hazard). It respawns like after any other destruction.</summary>
+        public void Kill()
+        {
+            if (!IsDestroyed) ApplyDamage(Health);
         }
 
         /// <summary>Takes health away (also usable by hazards that are not collisions).</summary>

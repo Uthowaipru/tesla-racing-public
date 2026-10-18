@@ -120,6 +120,8 @@ Shader "Anime/EnvironmentToon"
         float  _Anime_NightAmount;
         float  _Anime_LightIntensityOffset;
         float  _Anime_RimBoost;
+        float  _Anime_LowQuality;   // 0 = full, 1 = simple shading (set by AnimeQuality)
+        float  _Anime_OutlineOff;   // unused here, shared block
 
         float EnvHash21(float2 p)
         {
@@ -222,8 +224,11 @@ Shader "Anime/EnvironmentToon"
                 // painted-looking variation, no texture needed
                 float2 nuv = abs(N.y) > 0.7 ? IN.positionWS.xz
                            : (abs(N.x) > abs(N.z) ? IN.positionWS.zy : IN.positionWS.xy);
-                half pn = EnvNoise(nuv * _NoiseScale) * 0.65h + EnvNoise(nuv * _NoiseScale * 3.1) * 0.35h;
-                base *= 1.0h + (pn - 0.5h) * _NoiseStrength * 2.0h;
+                if (_Anime_LowQuality < 0.5)
+                {
+                    half pn = EnvNoise(nuv * _NoiseScale) * 0.65h + EnvNoise(nuv * _NoiseScale * 3.1) * 0.35h;
+                    base *= 1.0h + (pn - 0.5h) * _NoiseStrength * 2.0h;
+                }
 
                 // procedural facade: windows and floor ledges from world position
                 half3 windowEmission = 0;
@@ -269,8 +274,11 @@ Shader "Anime/EnvironmentToon"
                 t *= lerp(1.0h, shadowAtten, _ReceiveShadow);
 
                 // hand-painted brush overlay on the ramp coordinate
-                half brush = SAMPLE_TEXTURE2D(_BrushTex, sampler_BrushTex, nuv * _BrushScale).r;
-                t += (brush - 0.5h) * _BrushStrength;
+                if (_Anime_LowQuality < 0.5)
+                {
+                    half brush = SAMPLE_TEXTURE2D(_BrushTex, sampler_BrushTex, nuv * _BrushScale).r;
+                    t += (brush - 0.5h) * _BrushStrength;
+                }
 
                 half s = ToonStep(t, _Threshold, _Softness);
                 half3 shadowTint = lerp(_ShadowTint.rgb, _Anime_ShadowTint.rgb, _Anime_ShadowTintAmount);

@@ -13,6 +13,9 @@ namespace VehicleSystem
         FullThrottle = 3   // maximum reward
     }
 
+    /// <summary>What a match rule decides about an impact: the normal damage rules, no damage at all, or destruction.</summary>
+    public enum ImpactVerdict { Normal, Immune, Kill }
+
     /// <summary>Everything the damage, effects and (later) scoring systems need to know about one impact.</summary>
     public struct ImpactInfo
     {

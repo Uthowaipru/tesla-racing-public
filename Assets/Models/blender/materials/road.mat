@@ -133,17 +133,17 @@ Material:
     - _AdditionalLightSoftness: 0.15
     - _AlphaClip: 0
     - _AlphaToMask: 0
-    - _AmbientInfluence: 0.3
+    - _AmbientInfluence: 0.4
     - _AnisoSpec: 0
     - _BaseAlpha: 0.4
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
-    - _BrushScale: 8
-    - _BrushStrength: 0.166
+    - _BrushScale: 0.3
+    - _BrushStrength: 0.1
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
-    - _Cull: 0
+    - _Cull: 2
     - _Cutoff: 0.5
     - _DeepAlpha: 0.9
     - _DepthMax: 3
@@ -167,10 +167,10 @@ Material:
     - _GlossyReflections: 1
     - _GradientMaxY: 20
     - _GradientMinY: 0
-    - _GradientStrength: 0.5
+    - _GradientStrength: 0
     - _LedgeDarken: 0.25
     - _LedgeThickness: 0.08
-    - _LightIntensity: 0.85
+    - _LightIntensity: 0.9
     - _LitRatio: 0.4
     - _Max: 1
     - _Metalic: -4.81
@@ -178,8 +178,8 @@ Material:
     - _Min: 0.3
     - _Mode: 0
     - _NightAmount: 0
-    - _NoiseScale: 0.4
-    - _NoiseStrength: 0.15
+    - _NoiseScale: 0.6
+    - _NoiseStrength: 0.28
     - _OcclusionStrength: 1
     - _OutlineBaseTint: 0.6
     - _OutlineDistMax: 15
@@ -198,10 +198,10 @@ Material:
     - _ReceiveShadows: 1
     - _ReflectionBoost: 1.2
     - _ReflectionStrength: 0.55
-    - _RimGroundFade: 0.924
-    - _RimIntensity: 0.02
-    - _RimSoftness: 0.5
-    - _RimWidth: 0.014
+    - _RimGroundFade: 1
+    - _RimIntensity: 0
+    - _RimSoftness: 0.12
+    - _RimWidth: 0.75
     - _Shades: 0.49
     - _ShallowAlpha: 0.4
     - _Smoothness: 0.24
@@ -242,7 +242,7 @@ Material:
     - _UseBlendingNoise: 1
     - _UseFaceMask: 0
     - _Variation: 0.1
-    - _VertexAOStrength: 0.8
+    - _VertexAOStrength: 0
     - _WaveFrequency: 0.6
     - _WaveHeight: 0.05
     - _WaveSpeed: 1
@@ -253,12 +253,12 @@ Material:
     - _ZWrite: 1
     - _outline: 0
     m_Colors:
-    - _AOColor: {r: 0.5, g: 0.41999996, b: 0.72, a: 1}
-    - _BaseColor: {r: 0.11320752, g: 0.11267352, b: 0.11267352, a: 1}
+    - _AOColor: {r: 0.5, g: 0.42, b: 0.72, a: 1}
+    - _BaseColor: {r: 0.1132075, g: 0.1126735, b: 0.1126735, a: 1}
     - _BrushWeights: {r: 1, g: 0, b: 0, a: 0}
     - _Color: {r: 0.1132075, g: 0.1126735, b: 0.1126735, a: 1}
     - _DeepColor: {r: 0.09999997, g: 0.29999998, b: 0.65, a: 1}
-    - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FacadeOffset: {r: 0, g: 0, b: 0, a: 0}
     - _Flip: {r: 1, g: 1, b: 1, a: 1}
     - _FoamColor: {r: 1, g: 1, b: 1, a: 1}
@@ -271,8 +271,8 @@ Material:
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _PatternColor: {r: 1, g: 1, b: 1, a: 1}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-    - _RimColor: {r: 1, g: 0.95, b: 0.9, a: 1}
-    - _ShadowTint: {r: 0.72, g: 0.65999997, b: 0.88, a: 1}
+    - _RimColor: {r: 1, g: 0.9, b: 0.85, a: 1}
+    - _ShadowTint: {r: 0.5, g: 0.45, b: 0.7, a: 1}
     - _ShadowTint1: {r: 0.85, g: 0.78, b: 0.92, a: 1}
     - _ShadowTint2: {r: 0.6, g: 0.5, b: 0.8, a: 1}
     - _ShallowColor: {r: 0.45, g: 0.88, b: 0.9, a: 1}

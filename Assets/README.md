@@ -13,12 +13,13 @@ Scripts/
   Input/     LocalPlayerInput (was VehicleInput), InputModeManager, MobileControls, TouchHoldButton
   Camera/    VehicleCameraRig
   Player/    LocalPlayerRig (new), PlayerProfile (new: remembers the chosen vehicle)
-  UI/        PauseMenu, ControlsOverlay, ResetCounterUI, Speedometer, HealthBar, RespawnCountdown, VehicleNameTag, PickupHud, WrongWayBanner, MatchHud (new)
+  UI/        PauseMenu, ControlsOverlay, ResetCounterUI, Speedometer, HealthBar, RespawnCountdown, VehicleNameTag, PickupHud, WrongWayBanner, MatchHud, MatchResultsFlow (new)
   Menu/      VehicleSelectMenu, VehiclePreviewStage, VehiclePreviewDrag (new: vehicle selector with 3D preview)
   Data/      VehicleDefinition, VehicleCatalog, StatModifierDef, MapDefinition, VehicleEffectsDefaults (new ScriptableObjects)
   Race/      RaceConfig, PlayerSlot, VehicleSpawner, MatchManager, MatchPlayer (new)
   Pickups/   Pickup (battery, repair kit)
-  Bots/      BotInput, BotSettings (new)
+  Bots/      BotInput, BotSettings
+  Monetization/ RewardedAds (interface + static), DevRewardedAdProvider, LocalWallet (new)
   Road/      SeededRandom, RoadChunk, RoadPath, RoadGenerator, TrafficVehicle, TrafficManager, PickupPlacer, WrongWayTracker (new)
   Editor/    ControlsOverlayBuilder, MobileControlsBuilder, VehicleSelectMenuBuilder, SpeedometerBuilder, VehicleStatsEditor
 ```
@@ -96,7 +97,27 @@ Scripts/
   (`Spawn On Road Start`); `LocalPlayerRig` makes the road follow the local vehicle, and "off the road" counts as not safe for the
   repair kit (`VehicleRecovery.isPositionSafe`).
 
-## Bots (latest)
+## Road around every racer, void, rival rams, finish sequence (latest)
+
+- **The road is built around EVERY racer** (`RoadGenerator.AddTarget`; the spawner adds bots, the MatchManager adds all players): ahead of the
+  foremost, kept behind the last (`Max Chunk Span` limits the pieces kept). Traffic is cleaned up behind the LAST racer.
+- **VoidKillZone** (added by the RoadGenerator; `Add Void Kill Zone` to turn off): a racer below `Depth` m under the road is destroyed and
+  respawns. A respawn never lands off the road: remembered safe places that are not on the road are skipped, and if none is usable the road
+  supplies a place on it (`VehicleRecovery.fallbackPose`, `RoadGenerator.GetRoadPoseNear`). The usual -50 applies.
+- **Rival rams (MatchManager > Rivals):** with `Rival Kills` ON, a racer hit by another racer's NOSE at `Rival Kill Tier` speed or faster is destroyed
+  and the rammer is not hurt and is paid the ram points. Nose to nose: the faster wins (`Head On Win Points`, `Head On Speed Margin`), the other
+  is destroyed; too close to call = normal damage. NPC traffic keeps the old rule (head-on at full speed destroys you). Implemented with
+  `VehicleHealth.impactResolver` (verdicts Normal / Immune / Kill).
+- **MatchResultsFlow** (after the whistle): TIME UP -> winner cutscene (name + 3D vehicle, tap to skip; `CutsceneRequested(winner, done)` lets a
+  custom or bought cutscene take over) -> leaderboard (position, player, score, distance, side bumps, best chain) -> rewards (coins and cash count
+  up) with a "double your rewards" rewarded-ad offer -> CLAIM -> PLAY AGAIN / MAIN MENU.
+- **Rewarded ads:** `IRewardedAdProvider` + `RewardedAds.Provider`. With no ad SDK, the editor and development builds use a pretend ad
+  (`Simulate Ads Without Sdk`); release builds simply do not offer it. The offer is made at most `Max Doubles Per Day` times. Plug AdMob in later by
+  implementing the interface and setting `RewardedAds.Provider` at startup.
+- **LocalWallet** is a stand-in (PlayerPrefs) that takes the claimed coins and cash until the profile exists; `RewardsClaimed(coins, cash)` is the
+  event the profile will use.
+
+## Bots
 
 - **BotInput** is an AI input source (like the keyboard, but for a bot): the bot vehicle is the same prefab with the same physics, health,
   recovery and respawn, driven through a `VehicleDriver`. It follows a lane at a share of its top speed, looks ahead for slower NPC traffic and

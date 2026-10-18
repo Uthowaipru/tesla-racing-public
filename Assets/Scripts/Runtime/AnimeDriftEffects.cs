@@ -112,7 +112,8 @@ namespace AnimeToon.Integration
 
         void OnDestroy()
         {
-            if (marksRoot != null) Destroy(marksRoot.gameObject);
+            // let the marks fade out on their own instead of vanishing with the vehicle
+            if (marksRoot != null) Destroy(marksRoot.gameObject, skidLifetime + 0.5f);
         }
 
         // ------------------------------------------------------------------ setup
@@ -223,7 +224,7 @@ namespace AnimeToon.Integration
                 // smoke
                 if (useSmoke && smoke != null && amount > 0.05f)
                 {
-                    f.smokeAcc += smokeRate * amount * dt;
+                    f.smokeAcc += smokeRate * amount * dt * AnimeQuality.ParticleScale;
                     int n = Mathf.Min(Mathf.FloorToInt(f.smokeAcc), 3);
                     f.smokeAcc = Mathf.Min(f.smokeAcc - Mathf.Floor(f.smokeAcc), 1f);
                     for (int k = 0; k < n; k++) EmitSmoke(point, normal, amount, velocity);
@@ -231,9 +232,9 @@ namespace AnimeToon.Integration
                 else f.smokeAcc = 0f;
 
                 // sparks, only at the hardest slides
-                if (useSparks && sparks != null && amount >= sparksFrom)
+                if (useSparks && sparks != null && AnimeQuality.DriftSparks && amount >= sparksFrom)
                 {
-                    f.sparkAcc += sparksRate * amount * dt;
+                    f.sparkAcc += sparksRate * amount * dt * AnimeQuality.ParticleScale;
                     int n = Mathf.Min(Mathf.FloorToInt(f.sparkAcc), 3);
                     f.sparkAcc = Mathf.Min(f.sparkAcc - Mathf.Floor(f.sparkAcc), 1f);
                     for (int k = 0; k < n; k++) EmitSpark(point, normal, velocity);
@@ -241,7 +242,7 @@ namespace AnimeToon.Integration
                 else f.sparkAcc = 0f;
 
                 // skid marks (a little hysteresis so a mark does not flicker on and off)
-                if (useSkidMarks && skidMaterial != null)
+                if (useSkidMarks && skidMaterial != null && AnimeQuality.SkidMarks)
                 {
                     bool sliding = f.active >= 0 ? amount > 0.1f : amount > 0.2f;
                     if (sliding)
@@ -251,6 +252,7 @@ namespace AnimeToon.Integration
                     }
                     else EndSkid(f);
                 }
+                else EndSkid(f);
             }
 
             Drift01 = best;

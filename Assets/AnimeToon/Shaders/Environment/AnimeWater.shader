@@ -83,6 +83,8 @@ Shader "Anime/Water"
                 half  _SunThreshold, _SunExponent, _SunIntensity, _SunNoise;
             CBUFFER_END
 
+            float _Anime_LowQuality;   // 0 = full, 1 = simple shading (set by AnimeQuality)
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -157,10 +159,15 @@ Shader "Anime/Water"
                 // animated ripple lines: thin contours where two noise layers cross
                 float2 wp = IN.positionWS.xz;
                 float t = _Time.y * _PatternSpeed;
-                float n1 = WaterNoise(wp * _PatternScale + float2(t, t * 0.6));
-                float n2 = WaterNoise(wp * _PatternScale * 1.7 - float2(t * 0.8, t));
-                half ripple = 1.0h - smoothstep(0.0h, _PatternWidth, abs(n1 - n2));
-                col = lerp(col, _PatternColor.rgb, ripple * _PatternIntensity * (1.0h - depth01 * 0.6h));
+                float n1 = 0.5;
+                float n2 = 0.5;
+                if (_Anime_LowQuality < 0.5)
+                {
+                    n1 = WaterNoise(wp * _PatternScale + float2(t, t * 0.6));
+                    n2 = WaterNoise(wp * _PatternScale * 1.7 - float2(t * 0.8, t));
+                    half ripple = 1.0h - smoothstep(0.0h, _PatternWidth, abs(n1 - n2));
+                    col = lerp(col, _PatternColor.rgb, ripple * _PatternIntensity * (1.0h - depth01 * 0.6h));
+                }
 
                 // reflection: fake sky gradient blended with the real probe / skybox
                 half NdotV = saturate(dot(N, V));

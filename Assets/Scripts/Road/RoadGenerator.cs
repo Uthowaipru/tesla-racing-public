@@ -64,8 +64,15 @@ namespace VehicleSystem
         public float spawnHeight = 0.4f;
 
         [Header("Follow")]
-        [Tooltip("The vehicle the road is built around. LocalPlayerRig sets it.")]
+        [Tooltip("The local player's vehicle. LocalPlayerRig sets it. Bots and rivals are added with AddTarget().")]
         public Transform target;
+        [Tooltip("The road is built ahead of the FOREMOST racer and kept behind the LAST one, so nobody drives off its end. " +
+                 "At most this many pieces are kept between them; a racer further behind than that falls into the void and respawns.")]
+        public int maxChunkSpan = 14;
+
+        [Header("Void")]
+        [Tooltip("Add a VoidKillZone next to this component (racers that fall below the road are destroyed and respawn on the road).")]
+        public bool addVoidKillZone = true;
 
         public RoadPath Path { get; } = new RoadPath();
         public int Seed { get; private set; }
@@ -73,6 +80,9 @@ namespace VehicleSystem
         /// <summary>How far along the road the followed vehicle is (meters).</summary>
         public float PlayerS { get; private set; }
         public IReadOnlyList<RoadChunk> ActiveChunks => active;
+        /// <summary>How far along the road the foremost / the last racer is (meters).</summary>
+        public float LeadS { get; private set; }
+        public float RearS { get; private set; }
 
         /// <summary>True when the two-way pieces are in use (oncoming lanes exist).</summary>
         public bool IsTwoWay
@@ -112,6 +122,9 @@ namespace VehicleSystem
         RoadChunk[] activePrefabs;
         int nextIndex, nextCrossoverIndex, crossoverCount;
 
+        class Follow { public Transform transform; public float s; public bool hasS; }
+        readonly List<Follow> follows = new List<Follow>();
+
         RoadChunk[] ResolvePrefabs()
         {
             if (twoWayRoad && twoWayChunkPrefabs != null && twoWayChunkPrefabs.Length > 0) return twoWayChunkPrefabs;
@@ -122,6 +135,7 @@ namespace VehicleSystem
         {
             // Road Systems made before the wrong-way scoring existed have no tracker: add it, it does nothing on a one-way road
             if (GetComponent<WrongWayTracker>() == null) gameObject.AddComponent<WrongWayTracker>();
+            if (addVoidKillZone && GetComponent<VoidKillZone>() == null) gameObject.AddComponent<VoidKillZone>();
         }
 
         void Start()
@@ -130,6 +144,21 @@ namespace VehicleSystem
         }
 
         public void SetTarget(Transform newTarget) => target = newTarget;
+
+        /// <summary>Also build the road around this vehicle (a bot, a rival). Safe to call more than once.</summary>
+        public void AddTarget(Transform other)
+        {
+            if (other == null || other == target) return;
+            for (int i = 0; i < follows.Count; i++)
+                if (follows[i].transform == other) return;
+            follows.Add(new Follow { transform = other });
+        }
+
+        public void RemoveTarget(Transform other)
+        {
+            for (int i = follows.Count - 1; i >= 0; i--)
+                if (follows[i].transform == other) follows.RemoveAt(i);
+        }
 
         // ------------------------------------------------------------------ start / restart
 
@@ -160,6 +189,8 @@ namespace VehicleSystem
             nextCrossoverIndex = firstCrossoverIndex;
             crossoverCount = 0;
             PlayerS = 0f;
+            LeadS = RearS = 0f;
+            for (int i = 0; i < follows.Count; i++) follows[i].hasS = false;
 
             IsStarted = true;
             Restarted?.Invoke();
@@ -171,14 +202,43 @@ namespace VehicleSystem
 
         void Update()
         {
-            if (!IsStarted || target == null) return;
+            if (!IsStarted) return;
 
-            PlayerS = Path.ProjectS(target.position, PlayerS);
-            int current = CurrentIndex(PlayerS);
+            // where is everybody? The road is built ahead of the foremost racer and kept behind the last one.
+            bool any = false;
+            float lead = float.MinValue, rear = float.MaxValue;
 
-            while (nextIndex <= current + chunksAhead) Spawn(nextIndex++);
+            if (target != null)
+            {
+                PlayerS = Path.ProjectS(target.position, PlayerS);
+                lead = rear = PlayerS;
+                any = true;
+            }
 
-            while (active.Count > 1 && active[0].Index < current - chunksBehind)
+            for (int i = follows.Count - 1; i >= 0; i--)
+            {
+                Follow f = follows[i];
+                if (f.transform == null) { follows.RemoveAt(i); continue; }
+                if (f.transform == target) continue;
+
+                f.s = Path.ProjectS(f.transform.position, f.hasS ? f.s : -1f);
+                f.hasS = true;
+                lead = Mathf.Max(lead, f.s);
+                rear = Mathf.Min(rear, f.s);
+                any = true;
+            }
+
+            if (!any) return;
+            LeadS = lead;
+            RearS = rear;
+
+            int leadIndex = CurrentIndex(lead);
+            int rearIndex = CurrentIndex(rear);
+
+            while (nextIndex <= leadIndex + chunksAhead) Spawn(nextIndex++);
+
+            int removeBelow = Mathf.Max(rearIndex - chunksBehind, leadIndex - Mathf.Max(1, maxChunkSpan));
+            while (active.Count > 1 && active[0].Index < removeBelow)
             {
                 RoadChunk old = active[0];
                 active.RemoveAt(0);
@@ -359,6 +419,20 @@ namespace VehicleSystem
         {
             s = Path.ProjectS(position, sHint);
             return Vector3.Dot(position - Path.Evaluate(s), Path.Right(s));
+        }
+
+        /// <summary>
+        /// A place on the road near a position (for example where a racer fell into the void): a middle lane, a little behind it,
+        /// facing along the road. Used as the last resort when a destroyed vehicle has no safe place to return to.
+        /// </summary>
+        public Pose GetRoadPoseNear(Vector3 position)
+        {
+            if (Path.Count < 2) return new Pose(position + Vector3.up * spawnHeight, Quaternion.identity);
+
+            float s = Mathf.Max(Path.StartS, Path.ProjectS(position, -1f) - 5f);
+            int lane = Mathf.Max(0, ForwardLaneCount - 1) / 2;
+            Vector3 point = Path.Evaluate(s) + Path.Right(s) * LaneOffset(lane) + Vector3.up * spawnHeight;
+            return new Pose(point, Quaternion.LookRotation(Path.Tangent(s), Vector3.up));
         }
 
         /// <summary>Where a vehicle starts: slot 0 in the first lane, the next slots beside it, then the next row.</summary>
