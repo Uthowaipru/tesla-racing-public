@@ -3447,14 +3447,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimeToon.AnimeSpeedFx
   speed01: 0
-  boosting: 1
+  boosting: 0
   controlFov: 1
   baseFov: 0
   fovSpeedAdd: 8
   fovBoostAdd: 10
   fovSmoothing: 6
   useSpeedLines: 1
-  linesStartSpeed01: 0.6
+  linesStartSpeed01: 0.9
   maxLineIntensity: 0.5
   boostLineIntensity: 0.85
   lineColor: {r: 1, g: 1, b: 1, a: 1}
@@ -9400,9 +9400,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VehicleSystem.RoadChunk
   centerline: []
   straightLength: 60
-  laneCount: 3
+  laneCount: 6
   laneWidth: 3.2
-  oncomingLaneCount: 0
+  oncomingLaneCount: 6
   medianWidth: 2.4
   isCrossover: 1
   weight: 1
@@ -9424,7 +9424,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VehicleSystem.RoadGenerator
   seed: 12345
-  randomSeedOnStart: 0
+  randomSeedOnStart: 1
   autoStart: 1
   chunkPrefabs:
   - {fileID: 6110412226651625583, guid: 2b26c6c0569e044438da89217c50a2f5, type: 3}
@@ -9463,15 +9463,15 @@ MonoBehaviour:
   - {fileID: 5037793248817812308, guid: 62d8121b523377d4bb347daa727013dd, type: 3}
   - {fileID: 4994950481187485871, guid: 6352fa5b90b887e47b1ee55ea40b0c55, type: 3}
   - {fileID: 2735258251844995740, guid: 3f11e956b0b600048bdb34d5bc5332ba, type: 3}
-  minPerChunk: 3
-  maxPerChunk: 6
+  minPerChunk: 15
+  maxPerChunk: 25
   densityMultiplier: 1
   slowestLaneSpeed: 4
   fastestLaneSpeed: 9
   speedMultiplier: 1
   spawnOncoming: 1
-  oncomingMinPerChunk: 2
-  oncomingMaxPerChunk: 4
+  oncomingMinPerChunk: 15
+  oncomingMaxPerChunk: 25
   oncomingDensityMultiplier: 1
   oncomingSlowestLaneSpeed: 5
   oncomingFastestLaneSpeed: 10
@@ -10128,7 +10128,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34ea356ef98a1674088a615cff10104b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VehicleSystem.MatchManager
-  length: 4
+  length: 0
   customSeconds: 40
   countdownSeconds: 3
   autoStart: 1
@@ -23194,15 +23194,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4223482336989319415, guid: 60d80293ca6ea2a43bd3097f81d6b1fc, type: 3}
       propertyPath: avoidObstacles
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4223482336989319415, guid: 60d80293ca6ea2a43bd3097f81d6b1fc, type: 3}
       propertyPath: dampingFromCollision
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 4223482336989319415, guid: 60d80293ca6ea2a43bd3097f81d6b1fc, type: 3}
       propertyPath: dampingIntoCollision
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 6197412168244914816, guid: 60d80293ca6ea2a43bd3097f81d6b1fc, type: 3}
       propertyPath: m_Name

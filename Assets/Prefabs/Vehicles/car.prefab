@@ -1252,9 +1252,10 @@ GameObject:
   - component: {fileID: -3260454120036204823}
   - component: {fileID: 5445385120511992103}
   - component: {fileID: -5347339225146927392}
+  - component: {fileID: 8340138773566299844}
   m_Layer: 0
   m_Name: car
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1688,6 +1689,26 @@ MonoBehaviour:
   fullColor: {r: 0.35, g: 0.85, b: 0.35, a: 1}
   lowColor: {r: 0.95, g: 0.25, b: 0.2, a: 1}
   nameColor: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &8340138773566299844
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6475492854988622717}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fb86d1d0ff70b343aabc0dc8295bc88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimeToon.Integration.AnimeVehicleFxBridge
+  fx: {fileID: 0}
+  target: {fileID: 5699610958616736739}
+  playerTag: Player
+  impactBurstPrefab: {fileID: 6574251374261227103, guid: c1e6eca1ce837f841878d1c44068ae23, type: 3}
+  shockRingPrefab: {fileID: 8144738707832770318, guid: aefd317607bed1d4da5e5fa854c2da42, type: 3}
+  burstSize: 3
+  ringSize: 4
+  minImpactRatio: 0.3
 --- !u!1 &7264076617594270100
 GameObject:
   m_ObjectHideFlags: 0
