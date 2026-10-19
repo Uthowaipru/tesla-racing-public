@@ -58,6 +58,7 @@ namespace VehicleSystem
         public GameObject uiRoot;
         public GameObject mainPanel;
         public GameObject optionsPanel;
+        public GameObject GraphicsPanel;
         public Button resumeButton;
         public Button optionsButton;
         public Button mainMenuButton;
@@ -66,6 +67,7 @@ namespace VehicleSystem
         public Button autoAccelerateButton;
         [Tooltip("Optional. STEERING: BUTTONS / TILT. Created for you if missing (Add Steering Option in the Inspector puts it in the Hierarchy).")]
         public Button steeringButton;
+        public Button graphicssettingsbutton;
         [Tooltip("Optional. Only shown while tilt steering is on.")]
         public Button calibrateButton;
         public Button backButton;
@@ -121,6 +123,7 @@ namespace VehicleSystem
 
             resumeButton.onClick.AddListener(Resume);
             optionsButton.onClick.AddListener(ShowOptions);
+            graphicssettingsbutton.onClick.AddListener(ShowGraphicsMenu);
             mainMenuButton.onClick.AddListener(GoToMainMenu);
             volumeDownButton.onClick.AddListener(() => ChangeVolume(-volumeStep));
             volumeUpButton.onClick.AddListener(() => ChangeVolume(+volumeStep));
@@ -299,6 +302,16 @@ namespace VehicleSystem
             RefreshOptionTexts();
             Select(volumeUpButton);
         }
+
+        void ShowGraphicsMenu()
+        {
+            mainPanel.SetActive(false);
+            optionsPanel.SetActive(false);
+            GraphicsPanel.SetActive(true);
+            RefreshOptionTexts();
+            Select(volumeUpButton);
+        }
+
 
         static void Select(Button b)
         {

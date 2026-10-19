@@ -1,10 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using JetBrains.Annotations;
+
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem.UI;
 #endif
@@ -45,27 +45,26 @@ namespace AnimeToon
     }
 
     /// <summary>
-    /// Standalone graphics settings screen. It does not depend on any other menu of your game.
+    /// Standalone graphics settings screen. It never shows up by itself and has no button of its own:
+    /// you place it where you want and open it from your own button.
     ///
-    /// EDITABLE: run Tools > Anime Toon > Generate Graphics Menu UI once. That saves a prefab
-    /// (Assets/Resources/AnimeToon/AnimeGraphicsMenu.prefab) made of ordinary UI objects: open it and change colors, fonts,
-    /// sizes, positions, texts, sprites, remove or add rows. The script only needs the references listed below.
-    /// The prefab is created automatically when the game starts and stays between scenes.
+    /// SET UP
+    ///   1. Tools > Anime Toon > Generate Graphics Menu UI  (saves a prefab made of ordinary UI objects)
+    ///   2. Drag the prefab into the scene that has your settings screen (or Tools > Anime Toon > Add Graphics Menu To Scene).
+    ///      Restyle it freely: colors, fonts, sizes, positions, texts, sprites, remove or add rows.
+    ///   3. Link your own button: Button > OnClick > + > drag the menu object > AnimeGraphicsMenu > Show().
+    ///      (Hide() and ToggleVisible() work the same way. The BACK button inside the menu hides it.)
     ///
-    /// Without that prefab nothing appears by itself. In code you can still call AnimeGraphicsMenu.Create() to get a
-    /// default menu built at runtime, and AnimeGraphicsMenu.Open() / Close() / Toggle() from your own button.
+    /// FROM CODE   AnimeGraphicsMenu.Open() / Close() / Toggle()
+    ///   If no menu is in the scene, Open() builds a default one at that moment.
     ///
-    /// The panel pauses the game while it is open (switch off "Pause Game While Open" to keep it running).
+    /// The object with this script is its own overlay canvas, so it works in any scene. To put it inside one of your own
+    /// canvases instead, drag it under that canvas; delete the Dim object if you do not want the dark background.
     /// Changing any single setting switches to CUSTOM, starting from the preset that was active; the choice is saved.
     /// </summary>
     [DisallowMultipleComponent]
     public class AnimeGraphicsMenu : MonoBehaviour
     {
-        public enum Corner { TopRight, TopLeft, BottomRight, BottomLeft }
-
-        /// <summary>Optional: decides when the open button is visible (null = always, as long as Show Button is on).</summary>
-        public static Func<bool> ShowButtonWhen;
-
         public static AnimeGraphicsMenu Instance { get; private set; }
 
         public static bool IsOpen
@@ -73,15 +72,11 @@ namespace AnimeToon
             get { return Instance != null && Instance.panelRoot != null && Instance.panelRoot.activeSelf; }
         }
 
-        [Header("Open button")]
-        [Tooltip("Show the small GRAPHICS button. Off = open the menu from your own button with AnimeGraphicsMenu.Open().")]
-        public bool showButton = true;
-        public GameObject buttonRoot;
-        public Button openButton;
-
         [Header("Panel")]
+        [Tooltip("Everything that is shown and hidden (dim background and panel). The object with this script stays active.")]
         public GameObject panelRoot;
         public Button backButton;
+        public GameObject OptionsPanel;
         public Text infoText;
 
         [Header("Presets")]
@@ -99,18 +94,21 @@ namespace AnimeToon
         public Color selectedTextColor = new Color(0.1f, 0.1f, 0.14f, 1f);
 
         [Header("Behaviour")]
-        public bool pauseGameWhileOpen = true;
-        [Tooltip("Keep the menu when a new scene loads.")]
-        public bool persistAcrossScenes = true;
-        [Tooltip("Writes what the menu is doing to the Console: created, scale, visibility, destroyed (and in which scene). Turn it off once everything works.")]
-        public bool debugLog = true;
+        [Tooltip("Hide the menu when the scene starts (open it from your own button).")]
+        public bool startHidden = true;
+        [Tooltip("Freeze the game while the menu is open. Not needed when it is opened from a screen that is already paused.")]
+        public bool pauseGameWhileOpen = false;
+        [Tooltip("Keep this menu when a new scene loads. Only for a menu placed at the root of the scene.")]
+        public bool persistAcrossScenes = false;
+        [Tooltip("Write what the menu does (shown, hidden, destroyed) to the Console.")]
+        public bool debugLog = false;
 
-        // used only when the default menu is built by code
         static Font defaultFont;
+        static bool quitting;
         float savedTimeScale = 1f;
         bool pausedByMenu;
-        int lastVisible = -1;
-        static bool quitting;
+
+        // ------------------------------------------------------------------ static API (from code)
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
@@ -121,163 +119,27 @@ namespace AnimeToon
 
         static void MarkQuitting() { quitting = true; }
 
-        // ------------------------------------------------------------------ static API
-
-        /// <summary>Loads the prefab from Resources/AnimeToon if it exists. Nothing appears without it.</summary>
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        static void AutoCreate()
-        {
-            if (Instance != null || FindFirstObjectByType<AnimeGraphicsMenu>() != null) return;
-
-            var prefab = Resources.Load<GameObject>("AnimeToon/AnimeGraphicsMenu");
-            if (prefab == null) return;
-
-            Instantiate(prefab);
-        }
-
-        /// <summary>The menu, created with a default look built by code if there is none yet.</summary>
+        /// <summary>The menu in the scene, or a default one built right now (hidden until you open it).</summary>
         public static AnimeGraphicsMenu Create()
         {
             if (Instance != null) return Instance;
 
-            var existing = FindFirstObjectByType<AnimeGraphicsMenu>();
+            var existing = FindFirstObjectByType<AnimeGraphicsMenu>(FindObjectsInactive.Include);
             if (existing != null) return existing;
 
             var go = new GameObject("Anime Graphics Menu");
             return go.AddComponent<AnimeGraphicsMenu>();
         }
 
-        public static void Open()
-        {
-            Create().OpenPanel();
-        }
+        public static void Open() { Create().Show(); }
 
-        public static void Close()
-        {
-            if (Instance != null) Instance.ClosePanel();
-        }
+        public static void Close() { if (Instance != null) Instance.Hide(); }
 
-        public static void Toggle()
-        {
-            if (IsOpen) Close(); else Open();
-        }
+        public static void Toggle() { Create().ToggleVisible(); }
 
-        // ------------------------------------------------------------------ lifetime
+        // ------------------------------------------------------------------ show / hide (also usable from a Button's OnClick)
 
-        void Awake()
-        {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
-
-            if (panelRoot == null) BuildDefaultUI(); // nothing was set up: build the default menu
-
-            if (persistAcrossScenes)
-            {
-                transform.SetParent(null);
-                DontDestroyOnLoad(gameObject);
-            }
-
-            Bind();
-            panelRoot.SetActive(false);
-            AnimeQuality.Changed += Refresh;
-
-            // the open button needs an EventSystem to receive taps, so make sure there is one from the start
-            EnsureEventSystem();
-            SceneManager.sceneLoaded += OnSceneLoaded;
-            Application.quitting -= MarkQuitting;
-            Application.quitting += MarkQuitting;
-
-            if (debugLog) StartCoroutine(DebugReport());
-        }
-
-        void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-            EnsureEventSystem();
-            Log("scene loaded: " + scene.name + ". The menu is still alive (it lives in scene '" + gameObject.scene.name + "').");
-        }
-
-        IEnumerator DebugReport()
-        {
-            yield return null; // let the canvases update
-            yield return null;
-
-            if (buttonRoot == null || panelRoot == null)
-            {
-                Log("ERROR: buttonRoot or panelRoot is not assigned in the prefab.");
-                yield break;
-            }
-
-            FixZeroScale(buttonRoot);
-            FixZeroScale(panelRoot);
-
-            var canvas = buttonRoot.GetComponent<Canvas>();
-            var rect = buttonRoot.transform as RectTransform;
-            Log("ready. Open button: activeInHierarchy=" + buttonRoot.activeInHierarchy +
-                ", canvas=" + (canvas != null ? canvas.renderMode + " order " + canvas.sortingOrder + " enabled " + canvas.enabled : "NONE") +
-                ", scale=" + buttonRoot.transform.lossyScale + ", size=" + (rect != null ? rect.rect.size.ToString() : "?") +
-                ", screen=" + Screen.width + "x" + Screen.height +
-                ", EventSystem=" + (FindFirstObjectByType<EventSystem>() != null) +
-                ", showButton=" + showButton + ", scene='" + gameObject.scene.name + "'");
-        }
-
-        void FixZeroScale(GameObject canvasObject)
-        {
-            if (canvasObject.transform.lossyScale.sqrMagnitude > 0.000001f) return;
-
-            Log("WARNING: " + canvasObject.name + " still has zero scale at runtime. Setting it to 1.");
-            canvasObject.transform.localScale = Vector3.one;
-        }
-
-        void Log(string message)
-        {
-            if (debugLog) Debug.Log("[AnimeGraphicsMenu] " + message, this);
-        }
-
-        void OnDisable()
-        {
-            if (Application.isPlaying && !quitting) Log("disabled (scene '" + gameObject.scene.name + "').");
-            ReleasePause();
-        }
-
-        void OnDestroy()
-        {
-            if (Application.isPlaying && !quitting)
-            {
-                // scene 'DontDestroyOnLoad' means something called Destroy on it; any other scene name means its scene was unloaded
-                Log("DESTROYED while the game is running (it lived in scene '" + gameObject.scene.name + "').");
-            }
-
-            ReleasePause();
-            AnimeQuality.Changed -= Refresh;
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-            if (Instance == this) Instance = null;
-        }
-
-        void Update()
-        {
-            if (buttonRoot == null) return;
-
-            bool show = showButton && (ShowButtonWhen == null || ShowButtonWhen());
-            if (buttonRoot.activeSelf != show) buttonRoot.SetActive(show);
-
-            if (debugLog)
-            {
-                int visible = buttonRoot.activeInHierarchy ? 1 : 0;
-                if (visible != lastVisible)
-                {
-                    lastVisible = visible;
-                    Log("open button is now " + (visible == 1 ? "VISIBLE" : "HIDDEN") + " (showButton=" + showButton + ", ShowButtonWhen " + (ShowButtonWhen == null ? "not set" : "set") + ").");
-                }
-            }
-
-            if (ShowButtonWhen != null && !ShowButtonWhen() && IsOpen) ClosePanel();
-        }
-
-        void OpenPanel()
+        public void Show()
         {
             if (panelRoot == null) return;
 
@@ -291,12 +153,56 @@ namespace AnimeToon
                 Time.timeScale = 0f;
                 pausedByMenu = true;
             }
+            Log("shown.");
         }
 
-        void ClosePanel()
+        public void Hide()
         {
             if (panelRoot != null) panelRoot.SetActive(false);
             ReleasePause();
+            Log("hidden.");
+        }
+
+        public void ToggleVisible()
+        {
+            if (panelRoot != null && panelRoot.activeSelf) Hide(); else Show();
+        }
+
+        // ------------------------------------------------------------------ lifetime
+
+        void Awake()
+        {
+            Instance = this;
+
+            if (panelRoot == null) BuildDefaultUI(); // nothing was set up: build the default menu
+
+            if (persistAcrossScenes)
+            {
+                transform.SetParent(null);
+                DontDestroyOnLoad(gameObject);
+            }
+
+            Bind();
+            if (startHidden) panelRoot.SetActive(false);
+
+            AnimeQuality.Changed += Refresh;
+            Application.quitting -= MarkQuitting;
+            Application.quitting += MarkQuitting;
+        }
+
+        void OnDisable()
+        {
+            ReleasePause();
+        }
+
+        void OnDestroy()
+        {
+            if (Application.isPlaying && !quitting)
+                Log("destroyed (it lived in scene '" + gameObject.scene.name + "').");
+
+            ReleasePause();
+            AnimeQuality.Changed -= Refresh;
+            if (Instance == this) Instance = null;
         }
 
         void ReleasePause()
@@ -304,6 +210,11 @@ namespace AnimeToon
             if (!pausedByMenu) return;
             pausedByMenu = false;
             if (Mathf.Approximately(Time.timeScale, 0f)) Time.timeScale = savedTimeScale;
+        }
+
+        void Log(string message)
+        {
+            if (debugLog) Debug.Log("[AnimeGraphicsMenu] " + message, this);
         }
 
         static void EnsureEventSystem()
@@ -319,12 +230,16 @@ namespace AnimeToon
 #endif
         }
 
-        // ------------------------------------------------------------------ wiring (works for the prefab and the default menu)
+        // ------------------------------------------------------------------ wiring (same for the prefab and the default menu)
 
+        
         void Bind()
         {
-            if (openButton != null) openButton.onClick.AddListener(Toggle);
-            if (backButton != null) backButton.onClick.AddListener(Close);
+            backButton.onClick.AddListener(ShowOptionsPanel);
+
+            if (backButton != null) backButton.onClick.AddListener(Hide);
+            
+            OptionsPanel.SetActive(true);
 
             foreach (AnimeGraphicsPreset preset in presets)
             {
@@ -332,6 +247,7 @@ namespace AnimeToon
                 AnimeQualityMode mode = preset.mode;
                 preset.button.onClick.AddListener(() =>
                 {
+                    
                     AnimeQuality.SetMode(mode);
                     Refresh();
                 });
@@ -345,7 +261,18 @@ namespace AnimeToon
                 if (row.minus != null) row.minus.onClick.AddListener(() => Change(setting, -1));
                 if (row.plus != null) row.plus.onClick.AddListener(() => Change(setting, +1));
             }
+
         }
+        void ShowOptionsPanel()
+            {
+                OptionsPanel.SetActive(true);
+                panelRoot.SetActive(false);
+            }
+
+        
+
+        
+
 
         void Change(AnimeGraphicsSetting setting, int direction)
         {
@@ -403,8 +330,8 @@ namespace AnimeToon
             foreach (AnimeGraphicsRow row in rows)
             {
                 if (row == null || row.label == null) continue;
-                string name = string.IsNullOrEmpty(row.displayName) ? row.setting.ToString().ToUpperInvariant() : row.displayName;
-                row.label.text = name + ": " + RowValue(row.setting);
+                string rowName = string.IsNullOrEmpty(row.displayName) ? row.setting.ToString().ToUpperInvariant() : row.displayName;
+                row.label.text = rowName + ": " + RowValue(row.setting);
             }
 
             if (infoText != null)
@@ -450,9 +377,6 @@ namespace AnimeToon
 
         // ------------------------------------------------------------------ default menu (built by code, also used by the generator)
 
-        public static Corner ButtonCorner = Corner.TopRight;
-        public static Vector2 ButtonMargin = new Vector2(30f, 30f);
-
         /// <summary>
         /// Builds the default menu as ordinary UI objects under this object and fills in all the references.
         /// Tools > Anime Toon > Generate Graphics Menu UI calls this and saves the result as an editable prefab.
@@ -463,36 +387,34 @@ namespace AnimeToon
             presets.Clear();
             rows.Clear();
 
-            // ---- open button
-            buttonRoot = NewCanvas("Open Button Canvas", 590);
-            buttonRoot.transform.SetParent(transform, false);
+            // this object is its own overlay canvas, so the menu works in any scene
+            var canvas = GetComponent<Canvas>();
+            if (canvas == null) canvas = gameObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 600;
 
-            Text openLabel;
-            openButton = MakeButton(buttonRoot.transform, "GRAPHICS", 200f, 64f, 28, out openLabel, false);
-            var openRect = (RectTransform)openButton.transform;
-            openRect.sizeDelta = new Vector2(200f, 64f);
+            var scaler = GetComponent<CanvasScaler>();
+            if (scaler == null) scaler = gameObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
 
-            Vector2 anchor;
-            Vector2 position;
-            switch (ButtonCorner)
-            {
-                case Corner.TopLeft: anchor = new Vector2(0f, 1f); position = new Vector2(ButtonMargin.x, -ButtonMargin.y); break;
-                case Corner.BottomRight: anchor = new Vector2(1f, 0f); position = new Vector2(-ButtonMargin.x, ButtonMargin.y); break;
-                case Corner.BottomLeft: anchor = new Vector2(0f, 0f); position = new Vector2(ButtonMargin.x, ButtonMargin.y); break;
-                default: anchor = new Vector2(1f, 1f); position = new Vector2(-ButtonMargin.x, -ButtonMargin.y); break;
-            }
-            openRect.anchorMin = openRect.anchorMax = openRect.pivot = anchor;
-            openRect.anchoredPosition = position;
+            if (GetComponent<GraphicRaycaster>() == null) gameObject.AddComponent<GraphicRaycaster>();
 
-            // ---- panel
-            panelRoot = NewCanvas("Panel Canvas", 600);
-            panelRoot.transform.SetParent(transform, false);
+            int ui = LayerMask.NameToLayer("UI");
+            if (ui >= 0) gameObject.layer = ui;
 
-            var dim = NewUI("Dim", panelRoot.transform, typeof(RectTransform), typeof(Image));
+            // everything that is shown / hidden lives under Content
+            var content = NewUI("Content", transform, typeof(RectTransform));
+            Stretch((RectTransform)content.transform);
+            panelRoot = content;
+
+            var dim = NewUI("Dim", content.transform, typeof(RectTransform), typeof(Image));
             Stretch((RectTransform)dim.transform);
             dim.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f);
 
-            var panel = NewUI("Panel", panelRoot.transform, typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup));
+            var panel = NewUI("Panel", content.transform, typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup));
             var panelRect = (RectTransform)panel.transform;
             panelRect.anchorMin = panelRect.anchorMax = panelRect.pivot = new Vector2(0.5f, 0.5f);
             panelRect.sizeDelta = new Vector2(1420f, 820f);
@@ -548,20 +470,22 @@ namespace AnimeToon
             spacer.GetComponent<LayoutElement>().flexibleHeight = 1f;
 
             Text backLabel;
-            backButton = MakeButton(panel.transform, "BACK", 360f, 70f, 34, out backLabel, true);
+            backButton = MakeButton(panel.transform, "BACK", 360f, 70f, 34, out backLabel);
+
+            Refresh(); // fills in the texts so they are visible while editing the prefab
         }
 
         void AddPreset(Transform row, string label, AnimeQualityMode mode, string description)
         {
             Text text;
-            Button button = MakeButton(row, label, 250f, 70f, 32, out text, true);
+            Button button = MakeButton(row, label, 250f, 70f, 32, out text);
             presets.Add(new AnimeGraphicsPreset { mode = mode, button = button, label = text, description = description });
         }
 
         void AddCycleRow(Transform parent, AnimeGraphicsSetting setting, string displayName)
         {
             Text text;
-            Button button = MakeButton(parent, displayName, 660f, 66f, 30, out text, true);
+            Button button = MakeButton(parent, displayName, 660f, 66f, 30, out text);
             rows.Add(new AnimeGraphicsRow { setting = setting, displayName = displayName, button = button, label = text });
         }
 
@@ -576,44 +500,26 @@ namespace AnimeToon
             hlg.childForceExpandHeight = true;
 
             Text ignored;
-            Button minus = MakeButton(row.transform, "-", 100f, 66f, 40, out ignored, true);
+            Button minus = MakeButton(row.transform, "-", 100f, 66f, 40, out ignored);
 
             Text label = MakeText(row.transform, displayName + " Label", "", 30, textColor);
             var le = label.gameObject.AddComponent<LayoutElement>();
             le.preferredWidth = 440f;
             le.flexibleWidth = 1f;
 
-            Button plus = MakeButton(row.transform, "+", 100f, 66f, 40, out ignored, true);
+            Button plus = MakeButton(row.transform, "+", 100f, 66f, 40, out ignored);
 
             rows.Add(new AnimeGraphicsRow { setting = setting, displayName = displayName, label = label, minus = minus, plus = plus });
         }
 
         // ------------------------------------------------------------------ ui helpers
 
-        static GameObject NewUI(string name, Transform parent, params Type[] components)
+        static GameObject NewUI(string objectName, Transform parent, params Type[] components)
         {
-            var go = new GameObject(name, components);
+            var go = new GameObject(objectName, components);
             int ui = LayerMask.NameToLayer("UI");
             if (ui >= 0) go.layer = ui;
             go.transform.SetParent(parent, false);
-            return go;
-        }
-
-        static GameObject NewCanvas(string name, int sortingOrder)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            int ui = LayerMask.NameToLayer("UI");
-            if (ui >= 0) go.layer = ui;
-
-            var canvas = go.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = sortingOrder;
-
-            var scaler = go.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0.5f;
             return go;
         }
 
@@ -645,9 +551,9 @@ namespace AnimeToon
             return row.transform;
         }
 
-        Text MakeText(Transform parent, string name, string text, int size, Color color)
+        Text MakeText(Transform parent, string objectName, string text, int size, Color color)
         {
-            var go = NewUI(name, parent, typeof(RectTransform), typeof(Text));
+            var go = NewUI(objectName, parent, typeof(RectTransform), typeof(Text));
             var t = go.GetComponent<Text>();
             t.font = defaultFont;
             t.fontSize = size;
@@ -661,16 +567,13 @@ namespace AnimeToon
             return t;
         }
 
-        Button MakeButton(Transform parent, string label, float width, float height, int fontSize, out Text text, bool useLayoutElement)
+        Button MakeButton(Transform parent, string label, float width, float height, int fontSize, out Text text)
         {
-            var go = NewUI(label + " Button", parent, typeof(RectTransform), typeof(Image), typeof(Button));
+            var go = NewUI(label + " Button", parent, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
 
-            if (useLayoutElement)
-            {
-                var le = go.AddComponent<LayoutElement>();
-                le.preferredWidth = width;
-                le.preferredHeight = height;
-            }
+            var le = go.GetComponent<LayoutElement>();
+            le.preferredWidth = width;
+            le.preferredHeight = height;
 
             var img = go.GetComponent<Image>();
             img.color = Color.white; // the Button tints this

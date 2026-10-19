@@ -19,7 +19,7 @@ namespace AnimeToon
         [Header("Resolution and frame rate")]
         [Range(0.4f, 1f)] public float renderScale = 1f;
         [Tooltip("Frame rate cap. Phones: 30 is smoother and cooler than a 60 target that is never reached.")]
-        public int targetFps = 60;
+        public int targetFps = 90;
 
         [Header("URP asset")]
         [Tooltip("1 = off, 2 or 4 = MSAA.")]

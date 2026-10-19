@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.Collections;
+
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem.UI;
 #endif
@@ -209,6 +211,18 @@ namespace VehicleSystem
             popupHandled = false;
             delayTimer = startDelay;
             pending = true;
+
+            StartCoroutine(mouseUnlock(3.0f));
+            
+
+        }
+
+        IEnumerator mouseUnlock (float delayInSeconds)
+        {
+            yield return new WaitForSeconds(delayInSeconds);
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
         }
 
         void Update()
