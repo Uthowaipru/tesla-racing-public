@@ -10747,6 +10747,8 @@ MonoBehaviour:
   simulatedAdSeconds: 2
   adPlacement: double_match_rewards
   winnerStage: {fileID: 0}
+  PauseMenu: {fileID: 396669220}
+  MouseUnlockDelay: 4
   uiRoot: {fileID: 1923562753}
   cutscenePanel: {fileID: 1229560739}
   timeUpText: {fileID: 299176970}

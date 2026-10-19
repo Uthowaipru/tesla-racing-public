@@ -64,6 +64,10 @@ namespace VehicleSystem
         [Tooltip("Created for you if empty.")]
         public VehiclePreviewStage winnerStage;
 
+        [Header("Disable Pause Menu On Finish")]
+        public GameObject PauseMenu;
+        public float MouseUnlockDelay;
+
         [Header("UI (filled in by the editor tool)")]
         public GameObject uiRoot;
 
@@ -212,8 +216,8 @@ namespace VehicleSystem
             delayTimer = startDelay;
             pending = true;
 
-            StartCoroutine(mouseUnlock(3.0f));
-            
+            StartCoroutine(mouseUnlock(MouseUnlockDelay));
+            PauseMenu.SetActive(false);
 
         }
 
