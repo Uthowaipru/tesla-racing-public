@@ -4,8 +4,6 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using System.Collections;
-
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem.UI;
 #endif
@@ -17,7 +15,7 @@ namespace VehicleSystem
     public class LeaderboardRow
     {
         public GameObject root;
-        public Text position, playerName, score, distance, sideBumps, bestChain;
+        public Text position, playerName, vehicle, score, distance, sideBumps, rams, bestChain;
     }
 
     /// <summary>
@@ -53,9 +51,10 @@ namespace VehicleSystem
 
         [Header("Rewarded ad: double the rewards")]
         public bool offerDoubleReward = true;
-        [Tooltip("The double-reward offer is made this many times a day at most.")]
-        public int maxDoublesPerDay = 5;
-        [Tooltip("In the editor and development builds with no ad SDK yet, a pretend ad is shown, so the flow can be tried.")]
+        [Tooltip("The double-reward offer is made this many times a day at most. 0 = no limit.")]
+        public int maxDoublesPerDay = 0;
+        [Tooltip("While there is no ad SDK, a pretend ad (marked 'test ad') is shown in EVERY build, so the flow can be tried on a phone. " +
+                 "Turn this OFF before you publish: a real ad service replaces it.")]
         public bool simulateAdsWithoutSdk = true;
         public float simulatedAdSeconds = 2f;
         public string adPlacement = "double_match_rewards";
@@ -63,10 +62,6 @@ namespace VehicleSystem
         [Header("Winner stage (3D vehicle for the cutscene)")]
         [Tooltip("Created for you if empty.")]
         public VehiclePreviewStage winnerStage;
-
-        [Header("Disable Pause Menu On Finish")]
-        public GameObject PauseMenu;
-        public float MouseUnlockDelay;
 
         [Header("UI (filled in by the editor tool)")]
         public GameObject uiRoot;
@@ -118,7 +113,7 @@ namespace VehicleSystem
         MatchResult result;
         DevRewardedAdProvider devAds;
         float delayTimer, stepTimer, countUp;
-        bool pending, customCutscene, popupHandled, claimed;
+        bool pending, customCutscene, popupHandled, claimed, warnedRelease, cursorFreed;
         int multiplier = 1;
 
         // ------------------------------------------------------------------ setup
@@ -168,7 +163,11 @@ namespace VehicleSystem
             HideAll();
         }
 
-        void OnDestroy() => SetMatch(null);
+        void OnDestroy()
+        {
+            SetCursorFree(false);
+            SetMatch(null);
+        }
 
         bool UiComplete() =>
             uiRoot != null && cutscenePanel != null && timeUpText != null && winnerGroup != null && winnerNameText != null &&
@@ -190,8 +189,16 @@ namespace VehicleSystem
 #endif
         }
 
+        void SetCursorFree(bool free)
+        {
+            if (cursorFreed == free) return;
+            cursorFreed = free;
+            VehicleCameraRig.SetUiNeedsCursor(free); // PC: the mouse is needed for the buttons
+        }
+
         void HideAll()
         {
+            SetCursorFree(false);
             CurrentStep = Step.Hidden;
             pending = false;
             cutscenePanel.SetActive(false);
@@ -215,18 +222,6 @@ namespace VehicleSystem
             popupHandled = false;
             delayTimer = startDelay;
             pending = true;
-
-            StartCoroutine(mouseUnlock(MouseUnlockDelay));
-            PauseMenu.SetActive(false);
-
-        }
-
-        IEnumerator mouseUnlock (float delayInSeconds)
-        {
-            yield return new WaitForSeconds(delayInSeconds);
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-
         }
 
         void Update()
@@ -264,6 +259,7 @@ namespace VehicleSystem
         // ---- 1. time up
         void EnterTimeUp()
         {
+            SetCursorFree(true);
             CurrentStep = Step.TimeUp;
             stepTimer = timeUpSeconds;
             cutscenePanel.SetActive(true);
@@ -342,9 +338,11 @@ namespace VehicleSystem
 
                 Set(row.position, (i + 1).ToString(), color);
                 Set(row.playerName, p.name + (p.isLocal ? "  (YOU)" : ""), color);
+                Set(row.vehicle, p.definition != null ? p.definition.displayName : "-", color);
                 Set(row.score, p.points.ToString("N0"), color);
                 Set(row.distance, p.distance >= 1000f ? (p.distance / 1000f).ToString("0.0") + " km" : Mathf.RoundToInt(p.distance) + " m", color);
                 Set(row.sideBumps, p.npcBumps.ToString(), color);
+                Set(row.rams, p.rivalRams.ToString(), color);
                 Set(row.bestChain, p.maxChain.ToString(), color);
             }
         }
@@ -403,7 +401,7 @@ namespace VehicleSystem
         bool CanOfferDouble()
         {
             if (!offerDoubleReward || result.coins + result.cash <= 0) return false;
-            if (DoublesToday() >= maxDoublesPerDay) return false;
+            if (maxDoublesPerDay > 0 && DoublesToday() >= maxDoublesPerDay) return false;
             return EnsureAdProvider();
         }
 
@@ -411,8 +409,13 @@ namespace VehicleSystem
         {
             if (RewardedAds.IsReady) return true;
 
-            if (simulateAdsWithoutSdk && (Application.isEditor || Debug.isDebugBuild))
+            if (simulateAdsWithoutSdk)
             {
+                if (!Application.isEditor && !Debug.isDebugBuild && !warnedRelease)
+                {
+                    warnedRelease = true;
+                    Debug.LogWarning("MatchResultsFlow: pretend (test) ads are ON in a release build. Turn off 'Simulate Ads Without Sdk' before publishing.", this);
+                }
                 if (devAds == null) devAds = gameObject.AddComponent<DevRewardedAdProvider>();
                 devAds.duration = simulatedAdSeconds;
                 RewardedAds.Provider = devAds;
@@ -424,7 +427,8 @@ namespace VehicleSystem
         void ShowAdPopup()
         {
             adPopup.SetActive(true);
-            adPopupText.text = "DOUBLE YOUR REWARDS?\nWatch a short video, or miss out!";
+            adPopupText.text = "DOUBLE YOUR REWARDS?\nWatch a short video, or miss out!" +
+                               (devAds != null && ReferenceEquals(RewardedAds.Provider, devAds) ? "\n(test ad: no ad service yet)" : "");
             watchAdButton.gameObject.SetActive(true);
             watchAdButton.interactable = true;
             noThanksButton.interactable = true;
@@ -567,16 +571,17 @@ namespace VehicleSystem
             leaderboardPanel = Panel("Leaderboard Panel", root, panelColor);
             Label(leaderboardPanel.transform, "Title", "LEADERBOARD", 90, accentColor, topC, new Vector2(0f, -80f), new Vector2(1200f, 120f));
 
-            float[] widths = { 130f, 500f, 230f, 260f, 260f, 220f };
-            string[] headers = { "#", "PLAYER", "SCORE", "DISTANCE", "SIDE BUMPS", "BEST CHAIN" };
+            float[] widths = { 90f, 330f, 260f, 190f, 230f, 180f, 150f, 170f };
+            string[] headers = { "#", "PLAYER", "VEHICLE", "SCORE", "DISTANCE", "SIDE BUMPS", "RAMS", "BEST CHAIN" };
             float[] centres = new float[widths.Length];
             float x = -800f;
             for (int c = 0; c < widths.Length; c++) { centres[c] = x + widths[c] * 0.5f; x += widths[c]; }
+            int small = fontSize - 4;
 
             var header = NewUI("Header Row", leaderboardPanel.transform, typeof(RectTransform));
             Place((RectTransform)header.transform, topC, new Vector2(0f, -210f), new Vector2(1600f, 60f));
             for (int c = 0; c < widths.Length; c++)
-                Label(header.transform, "Header " + headers[c], headers[c], fontSize - 8, new Color(1f, 1f, 1f, 0.6f), mid, new Vector2(centres[c], 0f), new Vector2(widths[c], 56f));
+                Label(header.transform, "Header " + headers[c], headers[c], small - 6, new Color(1f, 1f, 1f, 0.6f), mid, new Vector2(centres[c], 0f), new Vector2(widths[c], 56f));
 
             rows = new LeaderboardRow[8];
             for (int i = 0; i < rows.Length; i++)
@@ -590,12 +595,14 @@ namespace VehicleSystem
                 rows[i] = new LeaderboardRow
                 {
                     root = rowGo,
-                    position = Label(rowGo.transform, "Position", (i + 1).ToString(), fontSize, Color.white, mid, new Vector2(centres[0], 0f), new Vector2(widths[0], 60f)),
-                    playerName = Label(rowGo.transform, "Player", i == 0 ? "PLAYER" : "BOT " + i, fontSize, Color.white, mid, new Vector2(centres[1], 0f), new Vector2(widths[1], 60f), TextAnchor.MiddleLeft),
-                    score = Label(rowGo.transform, "Score", "1,240", fontSize, Color.white, mid, new Vector2(centres[2], 0f), new Vector2(widths[2], 60f)),
-                    distance = Label(rowGo.transform, "Distance", "2.4 km", fontSize, Color.white, mid, new Vector2(centres[3], 0f), new Vector2(widths[3], 60f)),
-                    sideBumps = Label(rowGo.transform, "Side Bumps", "12", fontSize, Color.white, mid, new Vector2(centres[4], 0f), new Vector2(widths[4], 60f)),
-                    bestChain = Label(rowGo.transform, "Best Chain", "4", fontSize, Color.white, mid, new Vector2(centres[5], 0f), new Vector2(widths[5], 60f))
+                    position = Label(rowGo.transform, "Position", (i + 1).ToString(), small, Color.white, mid, new Vector2(centres[0], 0f), new Vector2(widths[0], 60f)),
+                    playerName = Label(rowGo.transform, "Player", i == 0 ? "PLAYER" : "BOT " + i, small, Color.white, mid, new Vector2(centres[1], 0f), new Vector2(widths[1], 60f), TextAnchor.MiddleLeft),
+                    vehicle = Label(rowGo.transform, "Vehicle", "RICKSHAW", small - 4, Color.white, mid, new Vector2(centres[2], 0f), new Vector2(widths[2], 60f), TextAnchor.MiddleLeft),
+                    score = Label(rowGo.transform, "Score", "1,240", small, Color.white, mid, new Vector2(centres[3], 0f), new Vector2(widths[3], 60f)),
+                    distance = Label(rowGo.transform, "Distance", "2.4 km", small, Color.white, mid, new Vector2(centres[4], 0f), new Vector2(widths[4], 60f)),
+                    sideBumps = Label(rowGo.transform, "Side Bumps", "12", small, Color.white, mid, new Vector2(centres[5], 0f), new Vector2(widths[5], 60f)),
+                    rams = Label(rowGo.transform, "Rams", "3", small, Color.white, mid, new Vector2(centres[6], 0f), new Vector2(widths[6], 60f)),
+                    bestChain = Label(rowGo.transform, "Best Chain", "4", small, Color.white, mid, new Vector2(centres[7], 0f), new Vector2(widths[7], 60f))
                 };
             }
 

@@ -48,6 +48,7 @@ namespace AnimeToon
         static readonly int NightAmountId = Shader.PropertyToID("_Anime_NightAmount");
         static readonly int LightOffsetId = Shader.PropertyToID("_Anime_LightIntensityOffset");
         static readonly int RimBoostId = Shader.PropertyToID("_Anime_RimBoost");
+        static readonly int WetnessId = Shader.PropertyToID("_Anime_Wetness");
 
         static readonly int SkyOverrideId = Shader.PropertyToID("_Anime_SkyOverride");
         static readonly int SkyZenithId = Shader.PropertyToID("_Anime_SkyZenith");
@@ -164,6 +165,7 @@ namespace AnimeToon
             Shader.SetGlobalFloat(NightAmountId, s.nightAmount);
             Shader.SetGlobalFloat(LightOffsetId, s.lightIntensityOffset);
             Shader.SetGlobalFloat(RimBoostId, s.rimBoost);
+            Shader.SetGlobalFloat(WetnessId, s.wetness);
         }
 
         void ApplyVolume(AnimeStylePreset.Snapshot s)
@@ -218,6 +220,7 @@ namespace AnimeToon
             Shader.SetGlobalFloat(NightAmountId, 0f);
             Shader.SetGlobalFloat(LightOffsetId, 0f);
             Shader.SetGlobalFloat(RimBoostId, 0f);
+            Shader.SetGlobalFloat(WetnessId, 0f);
             Shader.SetGlobalFloat(SkyOverrideId, 0f);
         }
     }

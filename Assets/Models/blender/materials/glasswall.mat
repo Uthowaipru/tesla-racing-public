@@ -27,6 +27,7 @@ Material:
   m_ValidKeywords: []
   m_InvalidKeywords:
   - _FACADE_ON
+  - _NIGHTWINDOWS_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -47,6 +48,10 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -71,19 +76,33 @@ Material:
     - _BrushStrength: 0.1
     - _Cull: 2
     - _Cutoff: 0.5
+    - _DstBlend: 10
+    - _EdgeCut: 0.12
+    - _EdgeSoftness: 0.65
+    - _ErodeAmount: 1
     - _FacadeOn: 1
     - _FaceSuppress: 0.9
-    - _FloorHeight: 3
+    - _FadeIn: 0.12
+    - _FadeOut: 0.45
+    - _FarFade: 110
+    - _FloorHeight: 3.78
     - _FresnelAlpha: 0.5
     - _FresnelPower: 1.81
     - _GradientMaxY: 30
     - _GradientMinY: 0
     - _GradientStrength: 0.5
+    - _HighSunIntensity: 0.25
+    - _Intensity: 1.2
     - _LedgeDarken: 0.25
     - _LedgeThickness: 0.08
     - _LightIntensity: 0.9
-    - _LitRatio: 0.4
+    - _LitRatio: 0.138
+    - _NearFade: 8
+    - _NightAlpha: 0.85
     - _NightAmount: 0.297
+    - _NightReflection: 0.4
+    - _NightTintBrightness: 0.35
+    - _NightWindows: 1
     - _NoiseScale: 0.4
     - _NoiseStrength: 0.15
     - _OutlineBaseTint: 0.6
@@ -111,11 +130,15 @@ Material:
     - _SpecShiftTexStrength: 0.3
     - _SpecSoftness: 0.05
     - _SpecThreshold: 0.5
+    - _SrcBlend: 5
     - _StreakIntensity: 0.5
     - _StreakParallax: 0.5
     - _StreakScale: 2
     - _StreakSoftness: 0.02
     - _StreakWidth: 0.12
+    - _StripeContrast: 0.6
+    - _StripeScale: 3
+    - _StripeSpeed: 0.15
     - _SunExponent: 60
     - _SunIntensity: 0.8
     - _SunThreshold: 0.6
@@ -131,25 +154,29 @@ Material:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _BrushWeights: {r: 1, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _FacadeOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _FacadeOffset: {r: -1.71, g: 1.79, b: 0, a: 0}
     - _GlassTint: {r: 0.34999996, g: 0.6, b: 0.85, a: 1}
     - _GlassTopTint: {r: 0.75, g: 0.9, b: 1, a: 1}
     - _GradientBottomColor: {r: 0.75, g: 0.65, b: 0.9, a: 1}
     - _GradientTopColor: {r: 1, g: 1, b: 1, a: 1}
     - _HorizonColor: {r: 1, g: 0.85, b: 0.9, a: 1}
+    - _LitColor: {r: 1, g: 1, b: 1, a: 1}
     - _LitTint: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColor: {r: 0.14999998, g: 0.09999997, b: 0.11999995, a: 1}
     - _RimColor: {r: 1, g: 0.9, b: 0.85, a: 1}
+    - _ShadowColor: {r: 0.6, g: 0.55, b: 0.8, a: 1}
     - _ShadowTint: {r: 0.62, g: 0.54999995, b: 0.85, a: 1}
     - _ShadowTint1: {r: 0.85, g: 0.78, b: 0.92, a: 1}
     - _ShadowTint2: {r: 0.6, g: 0.5, b: 0.8, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
     - _StreakColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Tint: {r: 1, g: 0.95, b: 0.8, a: 1}
     - _WindowBottomColor: {r: 0.24999997, g: 0.34999996, b: 0.6, a: 1}
     - _WindowLitColor: {r: 1, g: 0.85, b: 0.5, a: 1}
     - _WindowOffset: {r: 0, g: 0, b: 0, a: 0}
-    - _WindowSize: {r: 0.89, g: 4.62, b: 0, a: 0}
+    - _WindowSize: {r: 2.71, g: 1.12, b: 0, a: 0}
     - _WindowTopColor: {r: 0.65, g: 0.85, b: 1, a: 1}
+    - _WindowUnlitColor: {r: 0.049999982, g: 0.079999976, b: 0.17999998, a: 1}
     - _ZenithColor: {r: 0.5, g: 0.7, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

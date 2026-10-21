@@ -20,6 +20,10 @@ namespace AnimeToon.Editor
         RoadAsphalt,
         RoadMarking,
         Sidewalk,
+        RoadWet,
+        FoliageTree,
+        FoliageBush,
+        FoliageGrass,
         Glass,
         Water
     }
@@ -27,6 +31,15 @@ namespace AnimeToon.Editor
     public static class AnimeMaterialPresets
     {
         const string SampleFolder = "Assets/AnimeToon/Materials/Presets";
+
+        /// <summary>When on, building and wall presets also get the silhouette outline and the corner lines.</summary>
+        public static bool BuildingOutlines;
+
+        static bool IsBuilding(AnimePreset p)
+        {
+            return p == AnimePreset.BuildingPastel || p == AnimePreset.BuildingConcrete ||
+                   p == AnimePreset.BuildingShop || p == AnimePreset.WallPlain;
+        }
 
         // ------------------------------------------------------------------ info
 
@@ -48,6 +61,14 @@ namespace AnimeToon.Editor
                     return "Painted lane markings: warm white, light shadow tint, no rim light.";
                 case AnimePreset.Sidewalk:
                     return "Sidewalk and curb: warm gray with patchy variation.";
+                case AnimePreset.RoadWet:
+                    return "Anime/RoadWet: asphalt that gets wet when the style controller's Wetness is up: puddles, sky reflection, light streaks.";
+                case AnimePreset.FoliageTree:
+                    return "Anime/Foliage for tree crowns and branches: puffy spherical shading, root-to-tip color, backlight glow, wind. Pivot at the base.";
+                case AnimePreset.FoliageBush:
+                    return "Anime/Foliage for bushes, leaves and flowers: soft spherical shading, gentle wind.";
+                case AnimePreset.FoliageGrass:
+                    return "Anime/Foliage for grass: strong root-to-tip gradient and lively wind.";
                 case AnimePreset.Glass:
                     return "Anime/Glass: reflects the skybox, tint gradient by height, highlight streaks. Use on transparent glass.";
                 default:
@@ -65,7 +86,11 @@ namespace AnimeToon.Editor
             if (n.Contains("water")) { preset = AnimePreset.Water; return true; }
             if (n.Contains("marking") || n.Contains("lane") || n.Contains("stripe")) { preset = AnimePreset.RoadMarking; return true; }
             if (n.Contains("curb") || n.Contains("kerb") || n.Contains("sidewalk") || n.Contains("pavement")) { preset = AnimePreset.Sidewalk; return true; }
+            if (n.Contains("wetroad") || n.Contains("wet road")) { preset = AnimePreset.RoadWet; return true; }
             if (n.Contains("asphalt") || n.Contains("road")) { preset = AnimePreset.RoadAsphalt; return true; }
+            if (n.Contains("grass")) { preset = AnimePreset.FoliageGrass; return true; }
+            if (n.Contains("tree") || n.Contains("branch") || n.Contains("spruce") || n.Contains("fir") || n.Contains("pine")) { preset = AnimePreset.FoliageTree; return true; }
+            if (n.Contains("bush") || n.Contains("leaf") || n.Contains("leaves") || n.Contains("flower") || n.Contains("foliage")) { preset = AnimePreset.FoliageBush; return true; }
             if (n.Contains("shop") || n.Contains("market") || n.Contains("store")) { preset = AnimePreset.BuildingShop; return true; }
             if (n.Contains("building") || n.Contains("tower") || n.Contains("house")) { preset = AnimePreset.BuildingPastel; return true; }
             if (n.Contains("wall") || n.Contains("fence")) { preset = AnimePreset.WallPlain; return true; }
@@ -98,7 +123,9 @@ namespace AnimeToon.Editor
 
             bool glass = preset == AnimePreset.Glass;
             bool water = preset == AnimePreset.Water;
-            string shaderName = glass ? "Anime/Glass" : water ? "Anime/Water" : "Anime/EnvironmentToon";
+            bool roadWet = preset == AnimePreset.RoadWet;
+            bool foliage = preset == AnimePreset.FoliageTree || preset == AnimePreset.FoliageBush || preset == AnimePreset.FoliageGrass;
+            string shaderName = glass ? "Anime/Glass" : water ? "Anime/Water" : roadWet ? "Anime/RoadWet" : foliage ? "Anime/Foliage" : "Anime/EnvironmentToon";
             Shader shader = Shader.Find(shaderName);
             if (shader == null)
             {
@@ -135,10 +162,37 @@ namespace AnimeToon.Editor
 
             if (glass) SetGlass(m);
             else if (water) SetWater(m);
+            else if (roadWet)
+            {
+                SetRoadWet(m);
+                m.SetColor("_BaseColor", keepColor && hasColor ? oldColor : new Color(0.3f, 0.29f, 0.37f));
+                m.SetTexture("_BaseMap", keepTexture ? oldTexture : null);
+                if (keepTexture && oldTexture != null)
+                {
+                    m.SetTextureScale("_BaseMap", oldScale);
+                    m.SetTextureOffset("_BaseMap", oldOffset);
+                }
+            }
+            else if (foliage)
+            {
+                Color leafColor = SetFoliage(m, preset);
+                m.SetColor("_BaseColor", keepColor && hasColor ? oldColor : leafColor);
+                m.SetTexture("_BaseMap", keepTexture ? oldTexture : null);
+                if (keepTexture && oldTexture != null)
+                {
+                    m.SetTextureScale("_BaseMap", oldScale);
+                    m.SetTextureOffset("_BaseMap", oldOffset);
+                }
+            }
             else
             {
                 EnvBase(m);
                 Color presetColor = SetEnvPreset(m, preset);
+                if (BuildingOutlines && IsBuilding(preset))
+                {
+                    m.SetFloat("_OutlineWidth", 1.2f);   // silhouette
+                    m.SetFloat("_CreaseLines", 0.7f);    // lines on corners and edges
+                }
                 m.SetColor("_BaseColor", keepColor && hasColor ? oldColor : presetColor);
                 m.SetTexture("_BaseMap", keepTexture ? oldTexture : null);
                 if (keepTexture && oldTexture != null)
@@ -225,6 +279,15 @@ namespace AnimeToon.Editor
             m.SetFloat("_RimGroundFade", 1f);
 
             m.SetColor("_EmissionColor", Color.black);
+
+            // outlines are off unless a building preset is applied with "Building outlines" ticked
+            m.SetColor("_OutlineColor", new Color(0.2f, 0.15f, 0.3f));
+            m.SetFloat("_OutlineWidth", 0f);
+            m.SetFloat("_CreaseLines", 0f);
+            m.SetFloat("_CreaseThreshold", 0.3f);
+            m.SetFloat("_OutlineBaseTint", 0.5f);
+            m.SetFloat("_OutlineDistMin", 2f);
+            m.SetFloat("_OutlineDistMax", 60f);
         }
 
         static void SetFacadeOff(Material m)
@@ -342,6 +405,104 @@ namespace AnimeToon.Editor
             m.SetFloat("_ReflectionBoost", 1.2f);
             m.SetFloat("_StreakIntensity", 0.5f);
             m.SetFloat("_SunIntensity", 0.8f);
+
+            // lit windows at night (driven by the style controller's night amount)
+            m.SetFloat("_NightWindows", 1f);
+            m.SetFloat("_NightTintBrightness", 0.35f);
+            m.SetFloat("_NightReflection", 0.4f);
+            m.SetFloat("_NightAlpha", 0.85f);
+            m.SetFloat("_FloorHeight", 3f);
+            m.SetFloat("_WindowSpacing", 2.5f);
+            m.SetVector("_WindowSize", new Vector4(0.7f, 0.65f, 0f, 0f));
+            m.SetVector("_FacadeOffset", Vector4.zero);
+            m.SetColor("_WindowUnlitColor", new Color(0.05f, 0.08f, 0.18f));
+            m.SetColor("_WindowLitColor", new Color(1f, 0.85f, 0.5f));
+            m.SetFloat("_LitRatio", 0.45f);
+            m.SetFloat("_WindowEmission", 2.2f);
+        }
+
+        /// <summary>Sets the foliage values for a tree, bush or grass and returns a leaf green for the base color.</summary>
+        static Color SetFoliage(Material m, AnimePreset p)
+        {
+            m.SetFloat("_AlphaClip", 1f);
+            m.EnableKeyword("_ALPHATEST_ON");
+            m.SetFloat("_Cutoff", 0.5f);
+            m.SetFloat("_Cull", 0f);               // two sided
+
+            m.SetColor("_LitTint", Color.white);
+            m.SetColor("_ShadowTint", new Color(0.42f, 0.48f, 0.72f));
+            m.SetFloat("_Threshold", 0.5f);
+            m.SetFloat("_Softness", 0.08f);
+            m.SetFloat("_ReceiveShadow", 1f);
+            m.SetFloat("_LightIntensity", 0.95f);
+            m.SetFloat("_AmbientInfluence", 0.4f);
+            m.SetFloat("_AdditionalLightIntensity", 1f);
+            m.SetFloat("_AdditionalLightSoftness", 0.15f);
+
+            m.SetColor("_TipColor", new Color(1f, 1f, 0.7f));
+            m.SetColor("_RootColor", new Color(0.5f, 0.55f, 0.8f));
+            m.SetColor("_TranslucencyColor", new Color(1f, 0.95f, 0.5f));
+            m.SetFloat("_WindMask", 0f);
+            m.SetFloat("_WindSpeed", 1.4f);
+            m.SetFloat("_WindScale", 0.4f);
+            m.SetVector("_WindDirection", new Vector4(1f, 0.4f, 0f, 0f));
+
+            switch (p)
+            {
+                case AnimePreset.FoliageTree:
+                    m.SetFloat("_SphericalAmount", 0.7f);
+                    m.SetFloat("_CrownHeight", 3f);
+                    m.SetFloat("_HeightRange", 6f);
+                    m.SetFloat("_GradientStrength", 0.5f);
+                    m.SetFloat("_Translucency", 0.6f);
+                    m.SetFloat("_WindStrength", 0.08f);
+                    m.SetFloat("_WindHeight", 6f);
+                    return new Color(0.55f, 0.85f, 0.45f);
+
+                case AnimePreset.FoliageBush:
+                    m.SetFloat("_SphericalAmount", 0.6f);
+                    m.SetFloat("_CrownHeight", 0.6f);
+                    m.SetFloat("_HeightRange", 1.5f);
+                    m.SetFloat("_GradientStrength", 0.5f);
+                    m.SetFloat("_Translucency", 0.5f);
+                    m.SetFloat("_WindStrength", 0.1f);
+                    m.SetFloat("_WindHeight", 1.5f);
+                    return new Color(0.6f, 0.9f, 0.5f);
+
+                default: // grass
+                    m.SetFloat("_SphericalAmount", 0f);
+                    m.SetFloat("_CrownHeight", 0f);
+                    m.SetFloat("_HeightRange", 0.6f);
+                    m.SetFloat("_GradientStrength", 0.75f);
+                    m.SetFloat("_Translucency", 0.3f);
+                    m.SetFloat("_WindStrength", 0.2f);
+                    m.SetFloat("_WindHeight", 0.6f);
+                    return new Color(0.6f, 0.9f, 0.4f);
+            }
+        }
+
+        static void SetRoadWet(Material m)
+        {
+            m.SetFloat("_Cull", 2f);
+            m.SetColor("_LitTint", Color.white);
+            m.SetColor("_ShadowTint", new Color(0.5f, 0.45f, 0.7f));
+            m.SetFloat("_Threshold", 0.5f);
+            m.SetFloat("_Softness", 0.05f);
+            m.SetFloat("_ReceiveShadow", 1f);
+            m.SetFloat("_LightIntensity", 0.9f);
+            m.SetFloat("_AmbientInfluence", 0.4f);
+            m.SetFloat("_AdditionalLightIntensity", 1f);
+            m.SetFloat("_AdditionalLightSoftness", 0.15f);
+            m.SetFloat("_NoiseScale", 0.6f);
+            m.SetFloat("_NoiseStrength", 0.28f);
+            m.SetFloat("_Wetness", 0f);              // the style controller drives the wetness
+            m.SetFloat("_WetDarken", 0.4f);
+            m.SetFloat("_WetReflection", 0.45f);
+            m.SetFloat("_PuddleAmount", 0.5f);
+            m.SetFloat("_PuddleScale", 0.12f);
+            m.SetFloat("_PuddleReflection", 0.9f);
+            m.SetFloat("_ProbeBlend", 0.8f);
+            m.SetFloat("_StreakIntensity", 1.2f);
         }
 
         static void SetWater(Material m)

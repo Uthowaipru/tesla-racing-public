@@ -27,10 +27,17 @@ Material:
     m_Ints: []
     m_Floats:
     - _BaseAlpha: 0.4
+    - _FloorHeight: 3
     - _FresnelAlpha: 0.5
     - _FresnelPower: 3
     - _GradientMaxY: 30
     - _GradientMinY: 0
+    - _LitRatio: 0.45
+    - _NightAlpha: 0.85
+    - _NightAmount: 0
+    - _NightReflection: 0.4
+    - _NightTintBrightness: 0.35
+    - _NightWindows: 0
     - _ProbeBlend: 0.8
     - _ProbeRoughness: 0.15
     - _ReflectionBoost: 1.2
@@ -43,11 +50,17 @@ Material:
     - _SunExponent: 60
     - _SunIntensity: 0.8
     - _SunThreshold: 0.6
+    - _WindowEmission: 2.2
+    - _WindowSpacing: 2.5
     m_Colors:
+    - _FacadeOffset: {r: 0, g: 0, b: 0, a: 0}
     - _GlassTint: {r: 0.35, g: 0.6, b: 0.85, a: 1}
     - _GlassTopTint: {r: 0.75, g: 0.9, b: 1, a: 1}
     - _HorizonColor: {r: 1, g: 0.85, b: 0.9, a: 1}
     - _StreakColor: {r: 1, g: 1, b: 1, a: 1}
+    - _WindowLitColor: {r: 1, g: 0.85, b: 0.5, a: 1}
+    - _WindowSize: {r: 0.7, g: 0.65, b: 0, a: 0}
+    - _WindowUnlitColor: {r: 0.049999982, g: 0.079999976, b: 0.17999998, a: 1}
     - _ZenithColor: {r: 0.5, g: 0.7, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

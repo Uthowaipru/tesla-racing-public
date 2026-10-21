@@ -168,6 +168,44 @@ namespace VehicleSystem
         /// </summary>
         public void SetLookBack(bool value) => lookBack = value;
 
+        /// <summary>True while the camera is in FREE mode (chase mode off): the player turns it by hand.</summary>
+        public bool FreeCamera => !chaseMode;
+
+        /// <summary>Raised when the mode changes (true = free camera).</summary>
+        public event System.Action<bool> FreeCameraChanged;
+
+        /// <summary>Chase camera <-> free camera. Hold look-back works in both modes.</summary>
+        public void ToggleFreeCamera() => SetFreeCamera(chaseMode);
+
+        public void SetFreeCamera(bool free)
+        {
+            if (chaseMode == !free) return;
+            chaseMode = !free;
+            FreeCameraChanged?.Invoke(free);
+        }
+
+        // ---- the cursor must be free while a menu or result screen needs the mouse
+        static VehicleCameraRig current;
+        static bool uiNeedsCursor;
+
+        /// <summary>
+        /// Result screens and menus call this: true frees the mouse cursor (PC) so buttons can be clicked, false gives the
+        /// camera its cursor lock back. Several callers are fine as long as each one switches it off again.
+        /// </summary>
+        public static void SetUiNeedsCursor(bool needed)
+        {
+            uiNeedsCursor = needed;
+            if (needed)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+            else if (current != null)
+            {
+                current.ApplyCursor();
+            }
+        }
+
         /// <summary>
         /// Feed look input yourself (free orbit mode), e.g. from an on-screen touch pad.
         /// Mouse-like: pass degrees. Stick-like: pass degrees per second.
@@ -192,11 +230,16 @@ namespace VehicleSystem
 
         void OnEnable()
         {
+            current = this;
             ApplyCursor();
             VehicleController.VehicleEnabled += OnVehicleEnabled;
         }
 
-        void OnDisable() => VehicleController.VehicleEnabled -= OnVehicleEnabled;
+        void OnDisable()
+        {
+            if (current == this) current = null;
+            VehicleController.VehicleEnabled -= OnVehicleEnabled;
+        }
 
         void OnApplicationFocus(bool hasFocus) { if (hasFocus) ApplyCursor(); }
 
@@ -208,6 +251,12 @@ namespace VehicleSystem
 
         void ApplyCursor()
         {
+            if (uiNeedsCursor)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+                return;
+            }
             if (lockCursor && !Application.isMobilePlatform && !PauseMenu.IsPaused) Cursor.lockState = CursorLockMode.Locked;
         }
 

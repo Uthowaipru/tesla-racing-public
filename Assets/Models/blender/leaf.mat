@@ -1,0 +1,231 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: leaf
+  m_Shader: {fileID: 4800000, guid: 41ec88a5f94dd3645b21845e93ccf047, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _ALPHATEST_ON
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 1
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses:
+  - MOTIONVECTORS
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 9ab2244dc98a4ad49818c475792eaa98, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BrushTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 9ab2244dc98a4ad49818c475792eaa98, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ShadingMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SpecGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SpecShiftTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AOStrength: 1
+    - _AddPrecomputedVelocity: 0
+    - _AdditionalLightIntensity: 1
+    - _AdditionalLightSoftness: 0.15
+    - _AlphaClip: 1
+    - _AlphaToMask: 1
+    - _AmbientInfluence: 0.4
+    - _AnisoSpec: 0
+    - _Blend: 0
+    - _BlendModePreserveSpecular: 1
+    - _BrushScale: 0.3
+    - _BrushStrength: 0.1
+    - _BumpScale: 1
+    - _ClearCoatMask: 0
+    - _ClearCoatSmoothness: 0
+    - _CreaseLines: 0
+    - _CreaseThreshold: 0.05
+    - _CrownHeight: 3
+    - _Cull: 0
+    - _Cutoff: 0.5
+    - _DetailAlbedoMapScale: 1
+    - _DetailNormalMapScale: 1
+    - _DstBlend: 0
+    - _DstBlendAlpha: 0
+    - _EnvironmentReflections: 1
+    - _FacadeOn: 0
+    - _FaceSuppress: 0.9
+    - _FloorHeight: 3
+    - _GlossMapScale: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _GradientMaxY: 20
+    - _GradientMinY: 0
+    - _GradientStrength: 0.5
+    - _HeightRange: 6
+    - _LedgeDarken: 0.25
+    - _LedgeThickness: 0.08
+    - _LightIntensity: 0.95
+    - _LitRatio: 0.4
+    - _Metallic: 0
+    - _Mode: 0
+    - _NightAmount: 0
+    - _NoiseScale: 0.4
+    - _NoiseStrength: 0.15
+    - _OcclusionStrength: 1
+    - _OutlineBaseTint: 0
+    - _OutlineDistMax: 0
+    - _OutlineDistMin: 0
+    - _OutlineWidth: 0
+    - _Parallax: 0.02
+    - _QueueOffset: 0
+    - _ReceiveShadow: 1
+    - _ReceiveShadows: 1
+    - _RimGroundFade: 1
+    - _RimIntensity: 0.2
+    - _RimSoftness: 0.12
+    - _RimWidth: 0.75
+    - _Smoothness: 0.5
+    - _SmoothnessTextureChannel: 0
+    - _Softness: 0.08
+    - _SoftnessMax: 0.08
+    - _SoftnessMin: 0.01
+    - _SpecExpHigh: 200
+    - _SpecExpLow: 30
+    - _SpecIntensity: 0
+    - _SpecLowWeight: 0.4
+    - _SpecShift1: 0
+    - _SpecShift2: 0.3
+    - _SpecShiftTexStrength: 0.3
+    - _SpecSoftness: 0.05
+    - _SpecThreshold: 0.5
+    - _SpecularHighlights: 1
+    - _SphericalAmount: 0.7
+    - _SrcBlend: 1
+    - _SrcBlendAlpha: 1
+    - _Surface: 0
+    - _Threshold: 0.5
+    - _Threshold1: 0.5
+    - _Threshold2: 0.25
+    - _Translucency: 0.6
+    - _UVSec: 0
+    - _UseFaceMask: 0
+    - _VertexAOStrength: 0
+    - _WindHeight: 6
+    - _WindMask: 0
+    - _WindScale: 0.4
+    - _WindSpeed: 1.4
+    - _WindStrength: 0.08
+    - _WindowEmission: 2
+    - _WindowSpacing: 2.5
+    - _WorkflowMode: 1
+    - _XRMotionVectorsPass: 1
+    - _ZWrite: 1
+    m_Colors:
+    - _AOColor: {r: 0.5, g: 0.41999996, b: 0.72, a: 1}
+    - _BaseColor: {r: 0.3680245, g: 0.9716981, b: 0.01375042, a: 1}
+    - _BrushWeights: {r: 1, g: 0, b: 0, a: 0}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
+    - _FacadeOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _GradientBottomColor: {r: 0.75, g: 0.65, b: 0.9, a: 1}
+    - _GradientTopColor: {r: 1, g: 1, b: 1, a: 1}
+    - _LitTint: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColor: {r: 0.19999996, g: 0.14999998, b: 0.29999998, a: 1}
+    - _RimColor: {r: 1, g: 0.9, b: 0.85, a: 1}
+    - _RootColor: {r: 0.5, g: 0.55, b: 0.8, a: 1}
+    - _ShadowTint: {r: 0.42, g: 0.48, b: 0.72, a: 1}
+    - _ShadowTint1: {r: 0.85, g: 0.78, b: 0.92, a: 1}
+    - _ShadowTint2: {r: 0.6, g: 0.5, b: 0.8, a: 1}
+    - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
+    - _TipColor: {r: 1, g: 1, b: 0.7, a: 1}
+    - _TranslucencyColor: {r: 1, g: 0.95, b: 0.5, a: 1}
+    - _WindDirection: {r: 1, g: 0.4, b: 0, a: 0}
+    - _WindowBottomColor: {r: 0.24999997, g: 0.34999996, b: 0.6, a: 1}
+    - _WindowLitColor: {r: 1, g: 0.85, b: 0.5, a: 1}
+    - _WindowOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _WindowSize: {r: 0.55, g: 0.6, b: 0, a: 0}
+    - _WindowTopColor: {r: 0.65, g: 0.85, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
+--- !u!114 &4291000915654860291
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Editor::UnityEditor.Rendering.Universal.AssetVersion
+  version: 10

@@ -19,7 +19,7 @@ namespace AnimeToon
         [Header("Resolution and frame rate")]
         [Range(0.4f, 1f)] public float renderScale = 1f;
         [Tooltip("Frame rate cap. Phones: 30 is smoother and cooler than a 60 target that is never reached.")]
-        public int targetFps = 90;
+        public int targetFps = 60;
 
         [Header("URP asset")]
         [Tooltip("1 = off, 2 or 4 = MSAA.")]
@@ -54,6 +54,8 @@ namespace AnimeToon
         [Range(0.1f, 1f)] public float particleScale = 1f;
         public bool skidMarks = true;
         public bool driftSparks = true;
+        [Tooltip("Light shafts (god rays, AnimeLightShafts).")]
+        public bool lightShafts = true;
 
         public static AnimeQualityTier Create(AnimeQualityLevel level)
         {
@@ -66,7 +68,7 @@ namespace AnimeToon
                         shadows = false, shadowDistance = 0f, shadowCascades = 1, maxAdditionalLights = 0,
                         bloom = false, outlines = false, simpleShading = true, cloudQuality = 1,
                         textureMipLimit = 1, lodBias = 0.7f, anisotropic = false,
-                        particleScale = 0.4f, skidMarks = false, driftSparks = false
+                        particleScale = 0.4f, skidMarks = false, driftSparks = false, lightShafts = false
                     };
 
                 case AnimeQualityLevel.Medium:

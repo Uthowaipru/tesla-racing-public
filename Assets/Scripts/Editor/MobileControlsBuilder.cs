@@ -98,6 +98,7 @@ namespace VehicleSystem.EditorTools
             if (mc.reset == null) mc.reset = MakeButton(p, "RESET", tr, new Vector2(-270f, -110f), 130f, mc, true);
             if (mc.pause == null) mc.pause = MakeButton(p, "PAUSE", tl, new Vector2(110f, -110f), 130f, mc, true);
             if (mc.boost == null) mc.boost = MakeButton(p, "BOOST", br, new Vector2(-200f, 720f), 170f, mc, true);
+            if (mc.cameraToggle == null) mc.cameraToggle = MakeButton(p, "CAM", tr, new Vector2(-430f, -110f), 130f, mc, true);
         }
 
         static void Finish(MobileControls mc, GameObject select)

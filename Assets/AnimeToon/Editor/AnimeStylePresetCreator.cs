@@ -51,6 +51,7 @@ namespace AnimeToon.Editor
                 p.nightAmount = 0f;
                 p.lightIntensityOffset = 0f;
                 p.rimBoost = 0f;
+                p.wetness = 0f;
                 p.skyZenith = new Color(0.25f, 0.5f, 0.95f);
                 p.skyHorizon = new Color(0.75f, 0.9f, 1f);
                 p.skyGround = new Color(0.55f, 0.6f, 0.7f);
@@ -80,6 +81,7 @@ namespace AnimeToon.Editor
                 p.nightAmount = 0.35f;
                 p.lightIntensityOffset = 0f;
                 p.rimBoost = 0.6f;
+                p.wetness = 0.25f;
                 p.skyZenith = new Color(0.28f, 0.25f, 0.6f);
                 p.skyHorizon = new Color(1f, 0.6f, 0.5f);
                 p.skyGround = new Color(0.4f, 0.3f, 0.5f);
@@ -109,6 +111,7 @@ namespace AnimeToon.Editor
                 p.nightAmount = 1f;
                 p.lightIntensityOffset = 0f;
                 p.rimBoost = 1.2f;
+                p.wetness = 0.6f;
                 p.skyZenith = new Color(0.04f, 0.05f, 0.18f);
                 p.skyHorizon = new Color(0.18f, 0.2f, 0.45f);
                 p.skyGround = new Color(0.06f, 0.06f, 0.15f);

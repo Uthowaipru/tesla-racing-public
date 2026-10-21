@@ -1,4 +1,8 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace VehicleSystem
 {
@@ -63,6 +67,10 @@ namespace VehicleSystem
         public bool createWrongWayBanner = true;
         public bool createMatchHud = true;
         public bool createMatchResults = true;
+
+        [Header("Free camera")]
+        [Tooltip("Degrees the free camera turns per pixel of finger drag (touch).")]
+        public float touchLookSensitivity = 0.15f;
 
         [Header("Vehicle")]
         [Tooltip("Attached on Start. Leave empty to attach nothing (a spawner calls Attach later).")]
@@ -188,6 +196,7 @@ namespace VehicleSystem
 
             input.ResetPressed += OnResetPressed;
             input.BoostPressed += OnBoostPressed;
+            input.CameraTogglePressed += OnCameraTogglePressed;
         }
 
         /// <summary>Stop driving the current car. It holds still until another source drives it.</summary>
@@ -199,6 +208,7 @@ namespace VehicleSystem
             {
                 input.ResetPressed -= OnResetPressed;
                 input.BoostPressed -= OnBoostPressed;
+                input.CameraTogglePressed -= OnCameraTogglePressed;
             }
             if (driver != null && ReferenceEquals(driver.Source, input)) driver.SetSource(null);
             if (recovery != null && recovery.cameraRig == cameraRig) recovery.cameraRig = null;
@@ -217,6 +227,37 @@ namespace VehicleSystem
             recovery = null;
         }
 
+        /// <summary>The finger movement (pixels) this frame, from touches that are not on a UI button.</summary>
+        Vector2 ReadTouchDrag()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var screen = Touchscreen.current;
+            if (screen == null) return Vector2.zero;
+
+            Vector2 total = Vector2.zero;
+            var touches = screen.touches;
+            for (int i = 0; i < touches.Count; i++)
+            {
+                var touch = touches[i];
+                if (!touch.press.isPressed) continue;
+
+                bool onUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(touch.touchId.ReadValue());
+                if (onUi) continue;
+
+                Vector2 delta = touch.delta.ReadValue();
+                total += new Vector2(delta.x, -delta.y); // dragging up looks up, like the mouse
+            }
+            return total;
+#else
+            return Vector2.zero;
+#endif
+        }
+
+        void OnCameraTogglePressed()
+        {
+            if (cameraRig != null) cameraRig.ToggleFreeCamera();
+        }
+
         void OnBoostPressed()
         {
             if (boost != null) boost.TryBoost();
@@ -231,7 +272,14 @@ namespace VehicleSystem
 
         void Update()
         {
-            if (cameraRig != null && input != null) cameraRig.SetLookBack(input.LookBack);
+            if (cameraRig != null && input != null)
+            {
+                cameraRig.SetLookBack(input.LookBack);
+
+                // free camera on a phone: dragging a finger over the game (not over a button) turns the camera
+                if (cameraRig.FreeCamera && InputModeManager.Instance.Mode == InputMode.Touch && !PauseMenu.IsPaused)
+                    cameraRig.SetLookInput(ReadTouchDrag() * touchLookSensitivity, true); // true = already a turn in degrees, not a speed
+            }
         }
     }
 }

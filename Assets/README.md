@@ -97,7 +97,17 @@ Scripts/
   (`Spawn On Road Start`); `LocalPlayerRig` makes the road follow the local vehicle, and "off the road" counts as not safe for the
   repair kit (`VehicleRecovery.isPositionSafe`).
 
-## Road around every racer, void, rival rams, finish sequence (latest)
+## Camera modes, leaderboard columns, test ads (latest)
+
+- **Camera:** chase (default) -> hold look-back (C / right-stick click / BACK button) works in every mode -> tap **V / D-pad up / CAM** once = FREE camera
+  (chase mode off; turn it with the mouse, the right stick or a finger drag on the phone) -> tap again = back to chase. `VehicleCameraRig.ToggleFreeCamera()`,
+  `FreeCamera`, `FreeCameraChanged`. The CAM button is created at the top (left of RESET); to get it in the Hierarchy use **Add Missing Buttons** on Mobile Controls.
+- **Cursor:** the finish screens free the mouse cursor on PC (`VehicleCameraRig.SetUiNeedsCursor(true/false)`; any menu can use it).
+- **Leaderboard** now also shows the vehicle and the rams. Rebuild the Match Results UI (Inspector > Rebuild Default UI) to get the new columns.
+- **Ads:** the pretend ad now works in EVERY build (the phone too), marked "test ad"; turn `Simulate Ads Without Sdk` off before publishing. `Max Doubles Per Day` is 0
+  (no limit) by default.
+
+## Road around every racer, void, rival rams, finish sequence
 
 - **The road is built around EVERY racer** (`RoadGenerator.AddTarget`; the spawner adds bots, the MatchManager adds all players): ahead of the
   foremost, kept behind the last (`Max Chunk Span` limits the pieces kept). Traffic is cleaned up behind the LAST racer.

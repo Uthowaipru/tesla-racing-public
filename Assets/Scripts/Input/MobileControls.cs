@@ -52,6 +52,8 @@ namespace VehicleSystem
         public TouchHoldButton pause;
         [Tooltip("Spends a battery for a speed boost. Created for you above DRIFT if it is missing.")]
         public TouchHoldButton boost;
+        [Tooltip("Switches between the chase camera and the free camera. Created for you at the top, left of RESET, if it is missing.")]
+        public TouchHoldButton cameraToggle;
 
         [Header("Layout when auto-accelerate is OFF (the GAS button is shown)")]
         [Tooltip("For a UI built in the editor: BRAKE and DRIFT move here when the GAS button appears, and back afterwards.")]
@@ -75,6 +77,14 @@ namespace VehicleSystem
         {
             bool value = resetRequested;
             resetRequested = false;
+            return value;
+        }
+
+        /// <summary>True once per tap of the CAM button. Reading it clears it.</summary>
+        public bool ConsumeCameraToggle()
+        {
+            bool value = cameraRequested;
+            cameraRequested = false;
             return value;
         }
 
@@ -174,7 +184,7 @@ namespace VehicleSystem
             }
         }
 
-        bool resetRequested, resetWasHeld, pauseRequested, pauseWasHeld, boostRequested, boostWasHeld, runtimeUi;
+        bool resetRequested, resetWasHeld, pauseRequested, pauseWasHeld, boostRequested, boostWasHeld, cameraRequested, cameraWasHeld, runtimeUi;
         InputModeManager modeManager;
         float tiltZero, tiltSmoothed;
         bool tiltCalibrated;
@@ -200,6 +210,9 @@ namespace VehicleSystem
             // a UI made before the boost existed has no BOOST button: add one above DRIFT
             if (boost == null && uiRoot != null)
                 boost = MakeButton(uiRoot.transform, "BOOST", new Vector2(1f, 0f), new Vector2(-200f, 720f), 170f);
+
+            if (cameraToggle == null && uiRoot != null)
+                cameraToggle = MakeButton(uiRoot.transform, "CAM", new Vector2(1f, 1f), new Vector2(-430f, -110f), 130f);
 
             if (!runtimeUi) CaptureAutoLayout();
 
@@ -350,7 +363,7 @@ namespace VehicleSystem
             {
                 Throttle = Steer = 0f;
                 Handbrake = LookBack = false;
-                resetWasHeld = pauseWasHeld = boostWasHeld = false;
+                resetWasHeld = pauseWasHeld = boostWasHeld = cameraWasHeld = false;
                 return;
             }
 
@@ -380,6 +393,11 @@ namespace VehicleSystem
             bool boostHeld = boost != null && boost.Held;
             if (boostHeld && !boostWasHeld) boostRequested = true;
             boostWasHeld = boostHeld;
+
+            // CAM fires once when the button goes down
+            bool cameraHeld = cameraToggle != null && cameraToggle.Held;
+            if (cameraHeld && !cameraWasHeld) cameraRequested = true;
+            cameraWasHeld = cameraHeld;
         }
 
         // ------------------------------------------------------------------ tilt

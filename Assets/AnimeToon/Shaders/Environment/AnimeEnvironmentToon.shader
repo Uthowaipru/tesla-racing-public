@@ -71,6 +71,15 @@ Shader "Anime/EnvironmentToon"
         _RimIntensity ("Rim Intensity", Range(0,2)) = 0.2
         _RimGroundFade ("Fade Rim On Flat Ground", Range(0,1)) = 1
 
+        [Header(Outline and Edge Lines (off by default))]
+        _OutlineColor ("Outline Color", Color) = (0.2,0.15,0.3,1)
+        _OutlineWidth ("Silhouette Outline Width (pixels, 0 = off)", Range(0,4)) = 0
+        _CreaseLines ("Lines On Corners And Edges (0 = off)", Range(0,1)) = 0
+        _CreaseThreshold ("Corner Sensitivity (lower = more lines)", Range(0.05,1)) = 0.3
+        _OutlineBaseTint ("Tint Lines By Base Color", Range(0,1)) = 0.5
+        _OutlineDistMin ("Outline Min Distance", Float) = 2
+        _OutlineDistMax ("Outline Max Distance", Float) = 60
+
         [Header(Emission)]
         _EmissionMap ("Emission Map", 2D) = "white" {}
         [HDR] _EmissionColor ("Emission Color", Color) = (0,0,0,1)
@@ -111,6 +120,9 @@ Shader "Anime/EnvironmentToon"
             half4  _RimColor;
             half   _RimWidth, _RimSoftness, _RimIntensity, _RimGroundFade;
             half4  _EmissionColor;
+            half4  _OutlineColor;
+            half   _OutlineWidth, _CreaseLines, _CreaseThreshold, _OutlineBaseTint;
+            float  _OutlineDistMin, _OutlineDistMax;
         CBUFFER_END
 
         // Global style values, set by AnimeStyleController. Zero = neutral (no effect),
@@ -121,7 +133,7 @@ Shader "Anime/EnvironmentToon"
         float  _Anime_LightIntensityOffset;
         float  _Anime_RimBoost;
         float  _Anime_LowQuality;   // 0 = full, 1 = simple shading (set by AnimeQuality)
-        float  _Anime_OutlineOff;   // unused here, shared block
+        float  _Anime_OutlineOff;   // 1 = no outlines (set by AnimeQuality)
 
         float EnvHash21(float2 p)
         {
@@ -317,7 +329,73 @@ Shader "Anime/EnvironmentToon"
                 col += SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, IN.uv).rgb * _EmissionColor.rgb;
                 col += windowEmission;
 
+                // lines on corners and edges (hard edged buildings): where the face normal jumps between neighbouring pixels
+                if (_CreaseLines > 0.001h && _Anime_OutlineOff < 0.5)
+                {
+                    float3 dN = fwidth(N);
+                    float edge = saturate((max(dN.x, max(dN.y, dN.z)) - _CreaseThreshold) * 12.0);
+                    half3 lineColor = _OutlineColor.rgb * lerp(half3(1, 1, 1), base, _OutlineBaseTint);
+                    col = lerp(col, lineColor, (half)edge * _CreaseLines);
+                }
+
                 col = MixFog(col, IN.fogFactor);
+                return half4(col, 1.0h);
+            }
+            ENDHLSL
+        }
+
+        // silhouette outline: back faces pushed out by a few pixels (width 0 = pass disabled)
+        Pass
+        {
+            Name "Outline"
+            Tags { "LightMode"="SRPDefaultUnlit" }
+            Cull Front
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vertOutline
+            #pragma fragment fragOutline
+
+            struct OAttributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS   : NORMAL;
+                float2 uv         : TEXCOORD0;
+            };
+
+            struct OVaryings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 uv         : TEXCOORD0;
+            };
+
+            OVaryings vertOutline(OAttributes IN)
+            {
+                OVaryings OUT;
+                if (_OutlineWidth <= 0.0001h || _Anime_OutlineOff > 0.5)
+                {
+                    OUT.positionCS = float4(0, 0, 0, 0);
+                    OUT.uv = float2(0, 0);
+                    return OUT;
+                }
+
+                float3 posWS = TransformObjectToWorld(IN.positionOS.xyz);
+                float3 nWS = normalize(TransformObjectToWorldNormal(IN.normalOS));
+
+                float dist = clamp(distance(_WorldSpaceCameraPos, posWS), _OutlineDistMin, _OutlineDistMax);
+                float worldPerPixel = dist / unity_CameraProjection._m11 * 2.0 / _ScreenParams.y;
+                posWS += nWS * (_OutlineWidth * worldPerPixel);
+
+                OUT.positionCS = TransformWorldToHClip(posWS);
+                OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
+                return OUT;
+            }
+
+            half4 fragOutline(OVaryings IN) : SV_Target
+            {
+                half3 baseColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv).rgb * _BaseColor.rgb;
+                half3 col = _OutlineColor.rgb * lerp(half3(1, 1, 1), baseColor, _OutlineBaseTint);
                 return half4(col, 1.0h);
             }
             ENDHLSL

@@ -22,6 +22,11 @@ namespace AnimeToon.Editor
         bool keepColor = true;
         bool keepTexture = true;
 
+        void OnEnable()
+        {
+            AnimeMaterialPresets.BuildingOutlines = EditorPrefs.GetBool("AnimeToon.BuildingOutlines", false);
+        }
+
         [MenuItem("Tools/Anime Toon/Material Presets")]
         static void Open()
         {
@@ -42,6 +47,13 @@ namespace AnimeToon.Editor
             EditorGUILayout.Space();
             keepColor = EditorGUILayout.ToggleLeft("Keep the material's own color", keepColor);
             keepTexture = EditorGUILayout.ToggleLeft("Keep the material's own texture", keepTexture);
+
+            bool outlines = EditorGUILayout.ToggleLeft("Building outlines (silhouette + corner lines)", AnimeMaterialPresets.BuildingOutlines);
+            if (outlines != AnimeMaterialPresets.BuildingOutlines)
+            {
+                AnimeMaterialPresets.BuildingOutlines = outlines;
+                EditorPrefs.SetBool("AnimeToon.BuildingOutlines", outlines);
+            }
 
             EditorGUILayout.Space();
             if (GUILayout.Button("Apply To Selection", GUILayout.Height(28f))) ApplyToSelection();

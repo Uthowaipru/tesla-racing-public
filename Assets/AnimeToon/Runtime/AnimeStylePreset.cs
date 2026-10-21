@@ -30,6 +30,8 @@ namespace AnimeToon
         [Range(0f, 1f)] public float nightAmount = 0f;
         [Range(-1f, 1f)] public float lightIntensityOffset = 0f;
         [Range(-1f, 3f)] public float rimBoost = 0f;
+        [Tooltip("Wet roads (Anime/RoadWet): puddles, reflections and light streaks.")]
+        [Range(0f, 1f)] public float wetness = 0f;
 
         [Header("Sky (needs a skybox material using Anime/Sky)")]
         public Color skyZenith = new Color(0.25f, 0.5f, 0.95f);
@@ -60,7 +62,7 @@ namespace AnimeToon
             public Color fogColor;
             public float fogDensity;
             public Color shadowTint;
-            public float shadowTintAmount, nightAmount, lightIntensityOffset, rimBoost;
+            public float shadowTintAmount, nightAmount, lightIntensityOffset, rimBoost, wetness;
             public Color skyZenith, skyHorizon, skyGround;
             public Color horizonGlowColor;
             public float horizonGlowAmount;
@@ -86,6 +88,7 @@ namespace AnimeToon
                 s.nightAmount = Mathf.Lerp(a.nightAmount, b.nightAmount, t);
                 s.lightIntensityOffset = Mathf.Lerp(a.lightIntensityOffset, b.lightIntensityOffset, t);
                 s.rimBoost = Mathf.Lerp(a.rimBoost, b.rimBoost, t);
+                s.wetness = Mathf.Lerp(a.wetness, b.wetness, t);
                 s.skyZenith = Color.Lerp(a.skyZenith, b.skyZenith, t);
                 s.skyHorizon = Color.Lerp(a.skyHorizon, b.skyHorizon, t);
                 s.skyGround = Color.Lerp(a.skyGround, b.skyGround, t);
@@ -122,6 +125,7 @@ namespace AnimeToon
             s.nightAmount = nightAmount;
             s.lightIntensityOffset = lightIntensityOffset;
             s.rimBoost = rimBoost;
+            s.wetness = wetness;
             s.skyZenith = skyZenith;
             s.skyHorizon = skyHorizon;
             s.skyGround = skyGround;

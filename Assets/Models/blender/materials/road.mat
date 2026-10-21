@@ -21,7 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: road
-  m_Shader: {fileID: 4800000, guid: 7a05061ae2a57c243a62aa1c309b8091, type: 3}
+  m_Shader: {fileID: 4800000, guid: d022a0fd9747e9e46ba417ede75e131a, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -143,6 +143,8 @@ Material:
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
+    - _CreaseLines: 0
+    - _CreaseThreshold: 0.3
     - _Cull: 2
     - _Cutoff: 0.5
     - _DeepAlpha: 0.9
@@ -161,7 +163,7 @@ Material:
     - _FoamNoiseScale: 2.5
     - _FoamSpeed: 0.3
     - _FresnelAlpha: 0.5
-    - _FresnelPower: 3
+    - _FresnelPower: 8
     - _GlossMapScale: 1
     - _Glossiness: 0.038461566
     - _GlossyReflections: 1
@@ -190,8 +192,12 @@ Material:
     - _PatternScale: 0.6
     - _PatternSpeed: 0.15
     - _PatternWidth: 0.04
-    - _ProbeBlend: 0.8
-    - _ProbeRoughness: 0.15
+    - _ProbeBlend: 0.455
+    - _ProbeRoughness: 0.736
+    - _PuddleAmount: 0.328
+    - _PuddleReflection: 0.9
+    - _PuddleScale: 0.12
+    - _PuddleSoftness: 0.06
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadow: 1
@@ -225,6 +231,7 @@ Material:
     - _StreakParallax: 0.5
     - _StreakScale: 2
     - _StreakSoftness: 0.02
+    - _StreakStretch: 2
     - _StreakWidth: 0.12
     - _StrokeBlendingNoiseScale: 500
     - _StrokeBlendingNoiseStrength: 0.193
@@ -246,6 +253,9 @@ Material:
     - _WaveFrequency: 0.6
     - _WaveHeight: 0.05
     - _WaveSpeed: 1
+    - _WetDarken: 0.4
+    - _WetReflection: 0.45
+    - _Wetness: 0.117
     - _WindowEmission: 2
     - _WindowSpacing: 2.5
     - _WorkflowMode: 1

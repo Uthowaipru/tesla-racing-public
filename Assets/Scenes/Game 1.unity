@@ -2693,6 +2693,7 @@ MonoBehaviour:
   uiRoot: {fileID: 396814095}
   mainPanel: {fileID: 764294824}
   optionsPanel: {fileID: 257863051}
+  GraphicsPanel: {fileID: 0}
   resumeButton: {fileID: 261668929}
   optionsButton: {fileID: 1077562074}
   mainMenuButton: {fileID: 424736103}
@@ -2700,6 +2701,7 @@ MonoBehaviour:
   volumeUpButton: {fileID: 472812499}
   autoAccelerateButton: {fileID: 28746345}
   steeringButton: {fileID: 144132360}
+  graphicssettingsbutton: {fileID: 0}
   calibrateButton: {fileID: 1960366832}
   backButton: {fileID: 2048503290}
   volumeText: {fileID: 1737017293}
@@ -5985,6 +5987,8 @@ MonoBehaviour:
   rowSpacing: 6
   spawnHeight: 0.4
   target: {fileID: 0}
+  maxChunkSpan: 14
+  addVoidKillZone: 1
 --- !u!114 &1111244044
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6294,6 +6298,10 @@ MonoBehaviour:
   overtakeCooldown: 8
   overtakeMargin: 2
   rammedAreaHalfAngle: 40
+  rivalKills: 1
+  rivalKillTier: 3
+  headOnWinPoints: 30
+  headOnSpeedMargin: 0.1
   destroyedPenalty: 50
   allowNegativeScore: 0
   pointsPerCoin: 10
@@ -10734,6 +10742,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 343646600366466148, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1238675561473616282, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1362797404147361278, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
       propertyPath: m_Name
       value: buildingtwostory
@@ -10777,6 +10793,42 @@ PrefabInstance:
     - target: {fileID: 1847163765116075844, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1868960527037977993, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3141759419891795568, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3754926991541205075, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4512813457084162854, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4999434190882218884, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5625024828011616639, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6195079721433829981, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6331847107609865506, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8647751482650378894, guid: d3d6b2bd7cc3a6148ac869965cf4ab0c, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
